@@ -504,7 +504,7 @@ def experiment(files, Y, classes, N, n_splits):
 
         del dTest, yTest
 
-        for model_name in [0,1,2,3,4]:
+        for model_name in [0,1,2,3,4,5,6,7,8,9]:
 
             # load json and create model
             json_file = open(base_path + '/ResultsSubclasses/tanh/model/'+str(model_name)+'.json', 'r')
