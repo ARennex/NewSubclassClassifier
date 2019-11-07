@@ -30,7 +30,7 @@ num_gpu = args["gpus"]
 
 ## Settings
 # Files Setting
-limit = 6000 # Maximum amount of Star Per Class Per Survey
+limit = 7000 # Maximum amount of Star Per Class Per Survey
 extraRandom = True
 permutation = True # Permute Files
 BALANCE_DB = True # Balance or not
