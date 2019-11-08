@@ -72,7 +72,8 @@ print("Moving one level up to: ", str(one_up))
 #Laptop version
 regular_exp1 = one_up + '/Data/OGLE/**/**/*.dat'
 regular_exp2 = one_up + '/Data/VVV/**/**/**/*.csv'
-regular_exp3 = one_up + '/Data/ASASSN/**/**/*.dat'
+regular_exp3 = one_up + '/Data/ASASSN-notfound/**/**/*.dat'
+#regular_exp3 = one_up + '/Data/ASASSN/**/**/*.csv'
 
 ## Open Databases
 #subclasses = ['cep10', 'cepF', 'RRab', 'RRc', 'nonEC', 'EC', 'Mira', 'SRV', 'Osarg']
