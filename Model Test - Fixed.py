@@ -72,8 +72,8 @@ print("Moving one level up to: ", str(one_up))
 #Laptop version
 regular_exp1 = one_up + '/Data/OGLE/**/**/*.dat'
 regular_exp2 = one_up + '/Data/VVV/**/**/**/*.csv'
-regular_exp3 = one_up + '/Data/ASASSN-notfound/**/**/*.dat'
-#regular_exp3 = one_up + '/Data/ASASSN/**/**/*.csv'
+#regular_exp3 = one_up + '/Data/ASASSN-notfound/**/**/*.dat'
+regular_exp3 = one_up + '/Data/ASASSN/**/**/*.dat'
 
 ## Open Databases
 #subclasses = ['cep10', 'cepF', 'RRab', 'RRc', 'nonEC', 'EC', 'Mira', 'SRV', 'Osarg']
@@ -505,7 +505,7 @@ def experiment(files, Y, classes, N, n_splits):
 
         del dTest, yTest
 
-        for model_name in [0,1,2,3,4,5,6,7,8,9]:
+        for model_name in [0,1,2,3,4]: #[0,1,2,3,4,5,6,7,8,9]:
 
             # load json and create model
             json_file = open(base_path + '/ResultsSubclasses/tanh/model/'+str(model_name)+'.json', 'r')

@@ -39,7 +39,7 @@ maximum = 5
 # Mini Settings
 MAX_NUMBER_OF_POINTS = 500
 NUMBER_OF_POINTS = 500
-n_splits = 10 #Changing this for speed, just to test whether fixing the matrix shit works
+n_splits = 5 #Changing this for speed, just to test whether fixing the matrix shit works
 #n_splits = 10
 validation_set = 0.2
 
@@ -71,8 +71,9 @@ print("Moving one level up to: ", str(one_up))
 #Laptop version
 regular_exp1 = one_up + '/Data/OGLE/**/**/*.dat'
 regular_exp2 = one_up + '/Data/VVV/**/**/**/*.csv'
-regular_exp3 = one_up + '/Data/ASASSN-notfound/**/**/*.dat'
-#regular_exp3 = one_up + '/Data/ASASSN/**/**/*.csv'
+#regular_exp3 = one_up + '/Data/ASASSN-notfound/**/**/*.dat'
+#regular_exp3 = one_up + '/Data/ASASSN - Copy/**/**/*.dat'
+regular_exp3 = one_up + '/Data/ASASSN/**/**/*.dat'
 
 ## Open Databases
 #subclasses = ['cep10', 'cepF', 'RRab', 'RRc', 'nonEC', 'EC', 'Mira', 'SRV', 'Osarg']
@@ -476,6 +477,8 @@ def experiment(directory, files, Y, classes, N, n_splits):
     activations = ['tanh']
     earlyStopping = [False]
 
+    output = ''
+
     #Iterate over the activation functions, but only tanh is used where
     #Since it obtained the best results
     for early in earlyStopping:
@@ -586,6 +589,37 @@ def experiment(directory, files, Y, classes, N, n_splits):
             # except Exception as e:
             #     print('\t\t\t [!] Fatal Error:\n\t\t', str(e))
 
+            ###################
+            ##  Save Result  ##
+            ###################
+
+            print("Checking yPred to check if the classes are being found: ",list(set(yPred)))
+
+            y_actu = pd.Series(yReal, name='Actual')
+            y_pred = pd.Series(yPred, name='Predicted')
+            df_confusion = pd.crosstab(y_actu, y_pred, rownames=['Actual'], colnames=['Predicted'], margins=True)
+            output += df_confusion.to_string() + '\n'
+
+            df_confusion = pd.crosstab(y_actu, y_pred, rownames=['Actual'], colnames=['Predicted'])
+            df_conf_norm = df_confusion / df_confusion.sum(axis=1)
+            output += df_conf_norm.to_string() + '\n'
+
+            """
+            Check trends wrt surveys
+            """
+            s_actu = pd.Series(sReal, name='Survey')
+            df_confusion = pd.crosstab([s_actu,y_actu], y_pred, rownames=['Survey','Actual'], colnames=['Predicted'], margins=True)
+            print(df_confusion)
+            output += df_confusion.to_string() + '\n'
+
+            output += '*'*30 + '\n'
+
+            comparison = sklearn.metrics.accuracy_score(yReal,yPred)
+            print(comparison)
+            print('*'*30)
+
+    return output
+
 print('[+] Getting Filenames')
 files = np.array(get_files(extraRandom, permutation))
 YSubClass = []
@@ -602,5 +636,10 @@ while NUMBER_OF_POINTS <= MAX_NUMBER_OF_POINTS:
         print('[+] Creating Directory \n\t ->', directory)
         os.mkdir(directory)
 
-    experiment(directory, files, YSubClass, subclasses, NUMBER_OF_POINTS, n_splits)
+    #experiment(directory, files, YSubClass, subclasses, NUMBER_OF_POINTS, n_splits)
+    output = experiment(directory, files, YSubClass, subclasses, NUMBER_OF_POINTS, n_splits)
     NUMBER_OF_POINTS += step
+
+    text_file = open("ResultsSubclasses/Accuracy last model.txt", "a")
+    text_file.write(output)
+    text_file.close()
