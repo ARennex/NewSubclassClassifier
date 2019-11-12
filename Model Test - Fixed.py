@@ -79,7 +79,7 @@ regular_exp3 = one_up + '/Data/ASASSN/**/**/*.dat'
 #subclasses = ['cep10', 'cepF', 'RRab', 'RRc', 'nonEC', 'EC', 'Mira', 'SRV', 'Osarg']
 subclasses = ['lpv','cep','rrlyr','ecl-c','ecl-nc']
 #subclasses = ['clasCep','clasOvertoneCep','t2Cep','t2RVTau','contactBinary','detachedBinary','dsct','Mira','OSARG','SRV','RRab','RRc','RRd']
-subclasses = ['clasCep','clasOvertoneCep','t2Cep','t2RVTau','contactBinary','detachedBinary','dsct','Mira','OSARG','SRV','RRab','RRc'] #Trying without RRd
+subclasses = ['clasCep','clasOvertoneCep','t2Cep','t2RVTau','contactBinary','detachedBinary','Mira','OSARG','SRV','RRab','RRc'] #Trying without RRd and dsct (dsct are too short period to be easily found)
 
 #Make some fake classes and new fake data folders with just 0s and stuff to check it works
 #subclasses = ['noise']
@@ -567,11 +567,12 @@ def experiment(files, Y, classes, N, n_splits):
 
             output += '*'*30 + '\n'
 
+            comparison = sklearn.metrics.accuracy_score(yReal,yPred)
+            print("Comparison: ",comparison)
             print('*'*30)
 
             #print(scales)
             #print(max(scales))
-            #comparison = sklearn.metrics.accuracy_score(yReal,yPred)
             sorted_zip = sorted(zip(scales,yReal,yPred), key=lambda x: x[0])
             hist, bin_edges = np.histogram(scales, bins = 40, range=(0,100), density=False)
             bin_accuracy = []
@@ -590,6 +591,17 @@ def experiment(files, Y, classes, N, n_splits):
             plt.ylabel("% Classification Accuracy")
             plt.savefig('ResultsSubclasses/Percentage Accuracy in each bin, Model '+ str(model_name) + '.png')
             plt.close()
+
+            read_in_data = np.load('ResultsSubclasses/tanh/1) Red 500.npy')
+            y_actu = pd.Series(read_in_data[0], name='Actual')
+            y_pred = pd.Series(read_in_data[1], name='Predicted')
+            s_actu = pd.Series(read_in_data[2], name='Survey')
+            df_confusion = pd.crosstab(y_actu, y_pred, rownames=['Actual'], colnames=['Predicted'])
+            df_conf_norm = df_confusion / df_confusion.sum(axis=1)
+            print(df_conf_norm)
+            df_confusion = pd.crosstab([s_actu,y_actu], y_pred, rownames=['Survey','Actual'], colnames=['Predicted'], margins=True)
+            df_conf_norm = df_confusion / df_confusion.sum(axis=1)
+            print(df_conf_norm)
 
     return output
 

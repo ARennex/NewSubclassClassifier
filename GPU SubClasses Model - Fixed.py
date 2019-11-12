@@ -16,6 +16,7 @@ import glob, os, random
 import argparse
 
 from collections import Counter #Count number of objects in each class
+import sklearn.metrics
 
 from os.path import dirname as up
 
@@ -72,14 +73,14 @@ print("Moving one level up to: ", str(one_up))
 regular_exp1 = one_up + '/Data/OGLE/**/**/*.dat'
 regular_exp2 = one_up + '/Data/VVV/**/**/**/*.csv'
 #regular_exp3 = one_up + '/Data/ASASSN-notfound/**/**/*.dat'
-#regular_exp3 = one_up + '/Data/ASASSN - Copy/**/**/*.dat'
-regular_exp3 = one_up + '/Data/ASASSN/**/**/*.dat'
+regular_exp3 = one_up + '/Data/ASASSN - Copy/**/**/*.dat'
+#regular_exp3 = one_up + '/Data/ASASSN/**/**/*.dat'
 
 ## Open Databases
 #subclasses = ['cep10', 'cepF', 'RRab', 'RRc', 'nonEC', 'EC', 'Mira', 'SRV', 'Osarg']
 subclasses = ['lpv','cep','rrlyr','ecl-c','ecl-nc']
 #subclasses = ['clasCep','clasOvertoneCep','t2Cep','t2RVTau','contactBinary','detachedBinary','dsct','Mira','OSARG','SRV','RRab','RRc','RRd']
-subclasses = ['clasCep','clasOvertoneCep','t2Cep','t2RVTau','contactBinary','detachedBinary','dsct','Mira','OSARG','SRV','RRab','RRc'] #Trying without RRd and only two surveys
+subclasses = ['clasCep','clasOvertoneCep','t2Cep','t2RVTau','contactBinary','detachedBinary','Mira','OSARG','SRV','RRab','RRc'] #Trying without RRd and dsct (dsct are too short period to be easily found)
 
 #Make some fake classes and new fake data folders with just 0s and stuff to check it works
 #subclasses = ['noise']
@@ -615,7 +616,7 @@ def experiment(directory, files, Y, classes, N, n_splits):
             output += '*'*30 + '\n'
 
             comparison = sklearn.metrics.accuracy_score(yReal,yPred)
-            print(comparison)
+            print("Comparison: ",comparison)
             print('*'*30)
 
     return output
