@@ -600,8 +600,7 @@ def experiment(files, Y, classes, N, n_splits):
             df_conf_norm = df_confusion / df_confusion.sum(axis=1)
             print(df_conf_norm)
             df_confusion = pd.crosstab([s_actu,y_actu], y_pred, rownames=['Survey','Actual'], colnames=['Predicted'], margins=True)
-            df_conf_norm = df_confusion / df_confusion.sum(axis=1)
-            print(df_conf_norm)
+            print(df_confusion)
 
     return output
 
