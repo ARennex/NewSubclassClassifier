@@ -1,0 +1,29 @@
+Confusion Matrix For Each Model Iteration:
+Predicted    cep    ecl    lpv  rrlyr     All
+Actual                                       
+cep        24217    935   2438   2410   30000
+ecl         6982  16489   3731   2798   30000
+lpv         1547   1151  26844    458   30000
+rrlyr       8158   3105   2811  15926   30000
+All        40904  21680  35824  21592  120000
+Predicted       cep       ecl       lpv     rrlyr
+Actual                                           
+cep        0.807233  0.031167  0.081267  0.080333
+ecl        0.232733  0.549633  0.124367  0.093267
+lpv        0.051567  0.038367  0.894800  0.015267
+rrlyr      0.271933  0.103500  0.093700  0.530867
+Predicted        cep    ecl    lpv  rrlyr     All
+Survey Actual                                    
+ASASSN cep      8290     20   1630     60   10000
+       ecl      6328    279   3289    104   10000
+       lpv       851      6   9117     26   10000
+       rrlyr    7321     40   2440    199   10000
+OGLE   cep      9199    158    123    520   10000
+       ecl       144   9451     73    332   10000
+       lpv        78     33   9855     34   10000
+       rrlyr     365    368     45   9222   10000
+VVV    cep      6728    757    685   1830   10000
+       ecl       510   6759    369   2362   10000
+       lpv       618   1112   7872    398   10000
+       rrlyr     472   2697    326   6505   10000
+All            40904  21680  35824  21592  120000
