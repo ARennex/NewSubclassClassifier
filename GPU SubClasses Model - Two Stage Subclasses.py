@@ -29,7 +29,7 @@ num_gpu = args["gpus"]
 
 ## Settings
 # Files Setting
-limit = 8000 # Maximum amount of Star Per Class Per Survey
+limit = 10000 # Maximum amount of Star Per Class Per Survey
 extraRandom = True
 permutation = True # Permute Files
 BALANCE_DB = True # Balance or not
@@ -38,7 +38,7 @@ maximum = 5
 # Mini Settings
 MAX_NUMBER_OF_POINTS = 500
 NUMBER_OF_POINTS = 500
-n_splits = 4
+n_splits = 10
 validation_set = 0.2
 
 # Iterations
@@ -58,7 +58,7 @@ kernel_size = 50
 kernel_size2 = 50
 
 # Paths
-NumberOfFiles = 'Subclasses'
+NumberOfFiles = 'SingleSubclass'
 base_path = os.getcwd()
 
 from pathlib import Path
@@ -470,7 +470,7 @@ def dataset(files, N):
             elif 'OGLE' in file:
                 t, m, e = open_ogle(file, num, N, [0,1,2])
             elif 'ASASSN' in file:
-                t, m, e = open_asassn(file, num, N, [1,2,3])
+                t, m, e = open_asassn(file, num, N, [0,2,3])
             if c in subclasses:
                 input_1.append(create_matrix(t, N))
                 input_2.append(create_matrix(m, N))
@@ -651,7 +651,7 @@ def experiment(directory, files, Y, classes, N, n_splits):
 
             output = 'Confusion Matrix For Each Model Iteration:' + '\n'
             y_actu = pd.Series(yReal, name='Actual')
-            yPred = pd.Series(y_pred, name='Predicted')
+            y_pred = pd.Series(yPred, name='Predicted')
             df_confusion = pd.crosstab(y_actu, y_pred, rownames=['Actual'], colnames=['Predicted'], margins=True)
             output += df_confusion.to_string() + '\n'
 
@@ -663,7 +663,7 @@ def experiment(directory, files, Y, classes, N, n_splits):
             df_confusion = pd.crosstab([s_actu,y_actu], y_pred, rownames=['Survey','Actual'], colnames=['Predicted'], margins=True)
             output += df_confusion.to_string() + '\n'
 
-            text_file = open("ResultsClasses/Nodel Accuracy.txt", "a")
+            text_file = open("ResultsSingleSubClass/Model Accuracy.txt", "a")
             text_file.write(output)
             text_file.close()
 
