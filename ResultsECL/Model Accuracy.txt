@@ -1,0 +1,19 @@
+Confusion Matrix For Each Model Iteration:
+Predicted       contactBinary  detachedBinary    All
+Actual                                              
+contactBinary           25699            4301  30000
+detachedBinary          12236           17764  30000
+All                     37935           22065  60000
+Predicted       contactBinary  detachedBinary
+Actual                                       
+contactBinary        0.856633        0.143367
+detachedBinary       0.407867        0.592133
+Predicted              contactBinary  detachedBinary    All
+Survey Actual                                              
+ASASSN contactBinary            9704             296  10000
+       detachedBinary           6476            3524  10000
+OGLE   contactBinary            8427            1573  10000
+       detachedBinary           3078            6922  10000
+VVV    contactBinary            7568            2432  10000
+       detachedBinary           2682            7318  10000
+All                            37935           22065  60000
