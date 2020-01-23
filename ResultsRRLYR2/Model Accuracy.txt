@@ -1,0 +1,19 @@
+Confusion Matrix For Each Model Iteration:
+Predicted   RRab    RRc    All
+Actual                        
+RRab       21848   8152  30000
+RRc        14252  15748  30000
+All        36100  23900  60000
+Predicted      RRab       RRc
+Actual                       
+RRab       0.728267  0.271733
+RRc        0.475067  0.524933
+Predicted       RRab    RRc    All
+Survey Actual                     
+ASASSN RRab     9653    347  10000
+       RRc      8518   1482  10000
+OGLE   RRab     8108   1892  10000
+       RRc      2665   7335  10000
+VVV    RRab     4087   5913  10000
+       RRc      3069   6931  10000
+All            36100  23900  60000
