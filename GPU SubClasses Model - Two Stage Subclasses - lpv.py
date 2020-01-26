@@ -70,7 +70,7 @@ print("Moving one level up to: ", str(one_up))
 regular_exp1 = one_up + '/Data/OGLE/lpv/**/**/*.dat'
 regular_exp2 = one_up + '/Data/VVV/lpv/**/**/**/*.csv'
 regular_exp3 = one_up + '/Data/ASASSN/lpv/**/**/*.dat'
-regular_exp3 = one_up + '/Data/ASASSN/ecl/**/**/*.csv' #MAKE SURE THIS FINDS NOTHING
+#regular_exp3 = one_up + '/Data/ASASSN/ecl/**/**/*.csv' #MAKE SURE THIS FINDS NOTHING
 
 ## Open Databases
 subclasses = ['Mira','OSARG','SRV']

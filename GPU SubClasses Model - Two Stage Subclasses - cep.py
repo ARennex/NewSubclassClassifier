@@ -58,7 +58,7 @@ kernel_size = 50
 kernel_size2 = 50
 
 # Paths
-NumberOfFiles = 'RRLYR2'
+NumberOfFiles = 'CEP'
 base_path = os.getcwd()
 
 from pathlib import Path
@@ -67,13 +67,14 @@ one_up = str(p.parent)
 print("Moving one level up to: ", str(one_up))
 
 #Laptop version
-regular_exp1 = one_up + '/Data/OGLE/rrlyr/**/**/*.dat'
-regular_exp2 = one_up + '/Data/VVV/rrlyr/**/**/**/*.csv'
-regular_exp3 = one_up + '/Data/ASASSN/rrlyr/**/**/*.dat'
+regular_exp1 = one_up + '/Data/OGLE/cep/**/**/*.dat'
+regular_exp2 = one_up + '/Data/VVV/cep/**/**/**/*.csv'
+regular_exp3 = one_up + '/Data/ASASSN/cep/**/**/*.dat'
 
 ## Open Databases
 subclasses = ['contactBinary','detachedBinary']
-subclasses = ['RRab','RRc']
+subclasses = ['clasCep','clasOvertoneCep','dsct','t2Cep','t2RVTau']
+
 
 #Make some fake classes and new fake data folders with just 0s and stuff to check it works
 #subclasses = ['noise']
@@ -535,7 +536,7 @@ def experiment(directory, files, Y, classes, N, n_splits):
     # Iterating
     activations = ['tanh']
     earlyStopping = [False]
-    earlyStopping = [True]
+    #earlyStopping = [True]
 
     #Iterate over the activation functions, but only tanh is used where
     #Since it obtained the best results
@@ -665,7 +666,7 @@ def experiment(directory, files, Y, classes, N, n_splits):
             df_confusion = pd.crosstab([s_actu,y_actu], y_pred, rownames=['Survey','Actual'], colnames=['Predicted'], margins=True)
             output += df_confusion.to_string() + '\n'
 
-            text_file = open("ResultsRRLYR2/Model Accuracy.txt", "a")
+            text_file = open("ResultsCEP/Model Accuracy.txt", "a")
             text_file.write(output)
             text_file.close()
 

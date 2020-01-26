@@ -1,0 +1,34 @@
+Confusion Matrix For Each Model Iteration:
+Predicted        clasCep  clasOvertoneCep   dsct  t2Cep  t2RVTau    All
+Actual                                                                 
+clasCep            14805             1027    493    658       48  17031
+clasOvertoneCep     1343             9023    489    194        4  11053
+dsct                4367             5818  10918    561       45  21709
+t2Cep               1467              342    405  10788     1360  14362
+t2RVTau               70               16     63    186     2965   3300
+All                22052            16226  12368  12387     4422  67455
+Predicted         clasCep  clasOvertoneCep      dsct     t2Cep   t2RVTau
+Actual                                                                  
+clasCep          0.869297         0.092916  0.022709  0.045815  0.014545
+clasOvertoneCep  0.078856         0.816339  0.022525  0.013508  0.001212
+dsct             0.256415         0.526373  0.502925  0.039061  0.013636
+t2Cep            0.086137         0.030942  0.018656  0.751149  0.412121
+t2RVTau          0.004110         0.001448  0.002902  0.012951  0.898485
+Predicted               clasCep  clasOvertoneCep   dsct  t2Cep  t2RVTau    All
+Survey Actual                                                                 
+ASASSN clasCep             2810                6      1      6        0   2823
+       clasOvertoneCep      817               40      7     27        0    891
+       dsct                4034             5294    185    465       22  10000
+       t2Cep               1010               76      8     43       33   1170
+       t2RVTau               37                2      0      3        6     48
+OGLE   clasCep             8650              774     42    498       36  10000
+       clasOvertoneCep      335             7484     40    149        2   8010
+       dsct                  14                9   8332      9        0   8364
+       t2Cep                 96               35      4   3033       24   3192
+       t2RVTau                0                0      0     40      482    522
+VVV    clasCep             3345              247    450    154       12   4208
+       clasOvertoneCep      191             1499    442     18        2   2152
+       dsct                 319              515   2401     87       23   3345
+       t2Cep                361              231    393   7712     1303  10000
+       t2RVTau               33               14     63    143     2477   2730
+All                       22052            16226  12368  12387     4422  67455

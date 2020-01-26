@@ -19,3 +19,26 @@ VVV    Mira     9372    627      1  10000
        OSARG     873   9125      2  10000
        SRV      7687   2299     14  10000
 All            26844  21615  10334  58793
+Confusion Matrix For Each Model Iteration:
+Predicted   Mira  OSARG    SRV    All
+Actual                               
+Mira       25683    519   2591  28793
+OSARG        470  17421   2109  20000
+SRV         5750   5356  18894  30000
+All        31903  23296  23594  78793
+Predicted      Mira    OSARG       SRV
+Actual                                
+Mira       0.891988  0.02595  0.086367
+OSARG      0.016323  0.87105  0.070300
+SRV        0.199701  0.26780  0.629800
+Predicted       Mira  OSARG    SRV    All
+Survey Actual                            
+ASASSN Mira     9963      6     31  10000
+       SRV      1737   3197   5066  10000
+OGLE   Mira     8658     33    102   8793
+       OSARG      28   8923   1049  10000
+       SRV       179    526   9295  10000
+VVV    Mira     7062    480   2458  10000
+       OSARG     442   8498   1060  10000
+       SRV      3834   1633   4533  10000
+All            31903  23296  23594  78793
