@@ -1,0 +1,100 @@
+Predicted  OSARG  RRab  RRc  SRV  clasCep  clasOvertoneCep  contactBinary  detachedBinary  t2Cep   All
+Survey                                                                                                
+VVV           38     4  593    1      598              530            251             335      1  2351
+All           38     4  593    1      598              530            251             335      1  2351
+Predicted  Mira  OSARG  RRab  RRc  clasCep  clasOvertoneCep  contactBinary  detachedBinary  t2Cep  t2RVTau   All
+Survey                                                                                                          
+VVV           2     75    10  575       80              991            275             337      5        1  2351
+All           2     75    10  575       80              991            275             337      5        1  2351
+Predicted  Mira  OSARG  RRab  RRc  clasCep  clasOvertoneCep  contactBinary  detachedBinary  t2Cep   All
+Survey                                                                                                 
+VVV           1      8     2  627      334              732            301             339      7  2351
+All           1      8     2  627      334              732            301             339      7  2351
+Predicted  Mira  OSARG  RRab  RRc  SRV  clasCep  clasOvertoneCep  contactBinary  detachedBinary  t2Cep   All
+Survey                                                                                                      
+VVV           2     38     6  805    1      507              500            221             269      2  2351
+All           2     38     6  805    1      507              500            221             269      2  2351
+Predicted  Mira  OSARG  RRab  RRc  SRV  clasCep  clasOvertoneCep  contactBinary  detachedBinary  t2Cep   All
+Survey                                                                                                      
+VVV           1     25     4  745    2      264              770            222             315      3  2351
+All           1     25     4  745    2      264              770            222             315      3  2351
+Predicted  cep  ecl  lpv  rrlyr   All
+Survey                               
+VVV        493  849   11    998  2351
+All        493  849   11    998  2351
+Predicted   cep  ecl  lpv  rrlyr   All
+Survey                                
+VVV        1113  615   27    596  2351
+All        1113  615   27    596  2351
+Predicted  cep  ecl  lpv  rrlyr   All
+Survey                               
+VVV        574  737   28   1012  2351
+All        574  737   28   1012  2351
+Predicted  cep  ecl  lpv  rrlyr   All
+Survey                               
+VVV        212  563    1   1575  2351
+All        212  563    1   1575  2351
+Predicted  cep  ecl  lpv  rrlyr   All
+Survey                               
+VVV        934  659    9    749  2351
+All        934  659    9    749  2351
+Predicted  cep  ecl  lpv  rrlyr   All
+Survey                               
+VVV        716  733   13    889  2351
+All        716  733   13    889  2351
+Predicted  cep  ecl  lpv  rrlyr   All
+Survey                               
+VVV        307  791   40   1213  2351
+All        307  791   40   1213  2351
+Predicted  cep  ecl  lpv  rrlyr   All
+Survey                               
+VVV        663  840   12    836  2351
+All        663  840   12    836  2351
+Predicted  cep  ecl  lpv  rrlyr   All
+Survey                               
+VVV        736  737   11    867  2351
+All        736  737   11    867  2351
+Predicted  cep  ecl  lpv  rrlyr   All
+Survey                               
+VVV        665  576  244    866  2351
+All        665  576  244    866  2351
+Predicted  Mira  OSARG  SRV   All
+Survey                           
+VVV         434   1264  653  2351
+All         434   1264  653  2351
+Predicted  Mira  OSARG   SRV   All
+Survey                            
+VVV         476    648  1227  2351
+All         476    648  1227  2351
+Predicted  Mira  OSARG  SRV   All
+Survey                           
+VVV          20   1886  445  2351
+All          20   1886  445  2351
+Predicted  Mira  OSARG   SRV   All
+Survey                            
+VVV         216    560  1575  2351
+All         216    560  1575  2351
+Predicted  Mira  OSARG   SRV   All
+Survey                            
+VVV         108    595  1648  2351
+All         108    595  1648  2351
+Predicted  Mira  OSARG  SRV   All
+Survey                           
+VVV         211   1711  429  2351
+All         211   1711  429  2351
+Predicted  Mira  OSARG   SRV   All
+Survey                            
+VVV         354    576  1421  2351
+All         354    576  1421  2351
+Predicted  Mira  OSARG   SRV   All
+Survey                            
+VVV         242    732  1377  2351
+All         242    732  1377  2351
+Predicted  Mira  OSARG   SRV   All
+Survey                            
+VVV         369    542  1440  2351
+All         369    542  1440  2351
+Predicted  Mira  OSARG  SRV   All
+Survey                           
+VVV         212   1196  943  2351
+All         212   1196  943  2351
