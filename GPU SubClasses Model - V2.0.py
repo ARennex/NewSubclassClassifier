@@ -69,9 +69,9 @@ one_up = str(p.parent)
 print("Moving one level up to: ", str(one_up))
 
 #Superclass locations
-regular_exp1 = one_up + '/Data/OGLE/**/**/**/*.dat'
-regular_exp2 = one_up + '/Data/VVV/**/**/**/**/*.csv'
-regular_exp3 = one_up + '/Data/ASASSN/**/**/**/*.dat'
+class_loc1 = one_up + '/Data/OGLE/**/**/**/*.dat'
+class_loc2 = one_up + '/Data/VVV/**/**/**/**/*.csv'
+class_loc3 = one_up + '/Data/ASASSN/**/**/**/*.dat'
 
 #Subclass locations
 regular_exp1 = one_up + '/Data/OGLE/lpv/**/**/*.dat'
@@ -121,9 +121,9 @@ def get_filename(directory, N, early, activation='relu'):
     return directory, name
 
 def get_class(extraRandom = False, permutation=False):
-    files1 = np.array(list(glob.iglob(regular_exp1, recursive=True)))
-    files2 = np.array(list(glob.iglob(regular_exp2, recursive=True)))
-    files3 = np.array(list(glob.iglob(regular_exp3, recursive=True)))
+    files1 = np.array(list(glob.iglob(class_loc1, recursive=True)))
+    files2 = np.array(list(glob.iglob(class_loc2, recursive=True)))
+    files3 = np.array(list(glob.iglob(class_loc3, recursive=True)))
     #Glob searches for all files that fit the format given in regular_exp1
     #Then puts them in a list
 
@@ -312,12 +312,25 @@ def get_survey(path):
         return 'err'
 
 def get_name(path):
+    for singleclass in classes:
+        if singleclass in path:
+            return singleclass
+    return 'err'
+
+def get_name_with_survey(path):
+    for singleclass in classes:
+        if singleclass in path:
+            survey = get_survey(path)
+            return survey + '_' + singleclass
+    return 'err'
+
+def get_subclass_name(path):
     for subclass in subclasses:
         if subclass in path:
             return subclass
     return 'err'
 
-def get_name_with_survey(path):
+def get_subclass_name_with_survey(path):
     for subclass in subclasses:
         if subclass in path:
             survey = get_survey(path)
@@ -327,7 +340,7 @@ def get_name_with_survey(path):
 def open_vista(path, num):
     df = pd.read_csv(path, comment='#', sep=',', header = None)
     #print(df.iloc[0])
-    df.columns = ['sourceID','mjd','mag','ppErrBits','Flag','empty']
+    df.columns = ['sourceID','mjd','mag','magerr','ppErrBits','empty']
     df = df[df.mjd > 0]
     df = df.sort_values(by=[df.columns[1]])
 
@@ -485,28 +498,33 @@ def dataset(files, N):
     input_1 = []
     input_2 = []
     yClassTrain = []
+    ySubclassTrain = []
     survey = []
     #for file, num in tqdm(files):
     for file, num in files:
         num = int(num)
-        t, m, e, c, s = None, None, None, get_name(file), get_survey(file)
-        if c in subclasses:
-            if 'VVV' in file:
-                t, m, e = open_vista(file, num)
-            elif 'OGLE' in file:
-                t, m, e = open_ogle(file, num, N, [0,1,2])
-            elif 'ASASSN' in file:
-                t, m, e = open_asassn(file, num, N, [0,2,3])
-            if c in subclasses:
-                input_1.append(create_matrix(t, N))
-                input_2.append(create_matrix(m, N))
-                yClassTrain.append(c)
-                survey.append(s)
+        t, m, e, c, sc, s = None, None, None, get_name(file), get_survey(file)
+        if c in classes:
+            if sc in subclasses:
+                if 'VVV' in file:
+                    t, m, e = open_vista(file, num)
+                elif 'OGLE' in file:
+                    t, m, e = open_ogle(file, num, N, [0,1,2])
+                elif 'ASASSN' in file:
+                    t, m, e = open_asassn(file, num, N, [0,2,3])
+                if c in subclasses:
+                    input_1.append(create_matrix(t, N))
+                    input_2.append(create_matrix(m, N))
+                    yClassTrain.append(c)
+                    ySubclassTrain.append(sc)
+                    survey.append(s)
+                else:
+                    print('\t [!] E2 File not passed: ', file, '\n\t\t - Class: ',  c)
             else:
-                print('\t [!] E2 File not passed: ', file, '\n\t\t - Class: ',  c)
+                print('\t [!] E2 File not passed: ', file, '\n\t\t - Subclass: ',  sc)
         else:
             print('\t [!] E1 File not passed: ', file, '\n\t\t - Class: ',  c)
-    return np.array(input_1), np.array(input_2), np.array(yClassTrain), np.array(survey)
+    return np.array(input_1), np.array(input_2), np.array(yClassTrain), np.array(ySubclassTrain), np.array(survey)
 
 
 ## Keras Model
@@ -535,6 +553,35 @@ def get_model(N, classes, activation='relu'):
 
     return model
 
+def get_subclass_model(N, classes, subclasses, activation='relu'):
+    conv1 = Conv1D(filters, kernel_size, activation='relu')
+    conv2 = Conv1D(filters2, kernel_size2, activation='relu')
+
+    # For Time Tower
+    input1 = Input((N, 1))
+    out1 = conv1(input1)
+    out1 = conv2(out1)
+
+    # For Magnitude Tower
+    input2 = Input((N, 1))
+    out2 = conv1(input2)
+    out2 = conv2(out2)
+
+    # For the previous superclass classification
+    input3 = Input((len(classes),1))
+
+    out = Concatenate()([out1, out2])
+    out = Flatten()(out)
+    out = Concatenate()([out, input3])
+    out = Dropout(dropout)(out)
+    out = Dense(hidden_dims, activation=activation)(out)
+    out = Dropout(dropout)(out)
+    out = Dense(len(subclasses), activation='softmax')(out)
+
+    model = Model([input1, input2, input3], out)
+
+    return model
+
 def class_to_vector(Y, classes):
     new_y = []
     for y in Y:
@@ -556,133 +603,299 @@ def serialize_model(name, model):
     # Serialize weights to HDF5
     model.save_weights(name + ".h5")
 
-def freeze_session(session, keep_var_names=None, output_names=None, clear_devices=True):
-    """
-    Freezes the state of a session into a pruned computation graph.
+# def experiment(files, Y, classes, N, n_splits):
+#     # Iterating
+#     activations = ['tanh']
+#     earlyStopping = [False]
+#
+#     output = ''
+#
+#     #Iterate over the activation functions, but only tanh is used where
+#     #Since it obtained the best results
+#
+#     for activation in activations:
+#         # try:
+#         print('\t\t [+] Training',
+#               '\n\t\t\t [!] Activation', activation)
+#
+#         yPred = np.array([])
+#         yReal = np.array([])
+#         sReal = np.array([])
+#
+#         modelNum = 0
+#
+#         print('files',files)
+#         print('Y',Y)
+#         print('Y counts', Counter(Y))
+#
+#         dTest = files
+#
+#         # Get Database
+#         dTest_1, dTest_2, yTest, sTest = dataset(dTest, N)
+#
+#         yReal = np.append(yReal, yTest) #This is class label
+#         sReal = np.append(sReal, sTest) #This is survey label
+#
+#         del dTest, yTest
+#
+#         # load json and create model
+#         json_file = open(base_path + '/Results'+first_stage_location+'/tanh/model/'+str(model_name)+'.json', 'r')
+#         loaded_model_json = json_file.read()
+#         json_file.close()
+#         loaded_model = model_from_json(loaded_model_json)
+#         # load weights into new model
+#         loaded_model.load_weights(base_path + "/Results"+first_stage_location+""/tanh/model/"+str(model_name)+".h5")
+#         print("Loaded model from disk")
+#
+#         frozen_graph = freeze_session(K.get_session(),
+#                       output_names=[out.op.name for out in loaded_model.outputs])
+#
+#         loaded_model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+#
+#         #yPred = np.append(yPred, np.argmax(loaded_model.predict([dTest_1, dTest_2]), axis=1)) #Temporarily remove
+#         yPred = np.argmax(loaded_model.predict([dTest_1, dTest_2]), axis=1)
+#         print(loaded_model.predict([dTest_1, dTest_2]))
+#
+#         #del dTrain, dTest, yTrain, yTest, loaded_model
+#         del loaded_model
+#
+#         yPred = np.array([classes[int(i)]  for i in yPred])
+#         #print([yReal, yPred, sReal], len(yPred))
+#         print('*'*30)
+#
+#         print("Checking yPred to check if the classes are being found: ",list(set(yPred)))
+#
+#         y_actu = pd.Series(yReal, name='Actual')
+#         y_pred = pd.Series(yPred, name='Predicted')
+#         df_confusion = pd.crosstab(y_actu, y_pred, rownames=['Actual'], colnames=['Predicted'], margins=True)
+#         output += df_confusion.to_string() + '\n'
+#
+#         df_confusion = pd.crosstab(y_actu, y_pred, rownames=['Actual'], colnames=['Predicted'])
+#         df_conf_norm = df_confusion / df_confusion.sum(axis=1)
+#         output += df_conf_norm.to_string() + '\n'
+#
+#         """
+#         Check trends wrt surveys
+#         """
+#         s_actu = pd.Series(sReal, name='Survey')
+#         df_confusion = pd.crosstab([s_actu,y_actu], y_pred, rownames=['Survey','Actual'], colnames=['Predicted'], margins=True)
+#         print(df_confusion)
+#         output += df_confusion.to_string() + '\n'
+#
+#         comparison = sklearn.metrics.accuracy_score(yReal,yPred)
+#         print("Comparison: ",comparison)
+#         print('*'*30)
+#
+#         read_in_data = np.load('ResultsSubclasses/tanh/1) Red 500.npy')
+#         y_actu = pd.Series(read_in_data[0], name='Actual')
+#         y_pred = pd.Series(read_in_data[1], name='Predicted')
+#         s_actu = pd.Series(read_in_data[2], name='Survey')
+#         df_confusion = pd.crosstab(y_actu, y_pred, rownames=['Actual'], colnames=['Predicted'])
+#         df_conf_norm = df_confusion / df_confusion.sum(axis=1)
+#         print(df_conf_norm)
+#         df_confusion = pd.crosstab([s_actu,y_actu], y_pred, rownames=['Survey','Actual'], colnames=['Predicted'], margins=True)
+#         print(df_confusion)
+#
+#         file_system = zip[files,dTest_1, dTest_2, yTest, sTest,yPred]
+#         for var_class in classes:
+#
+#
+#
+#     return output
 
-    Creates a new computation graph where variable nodes are replaced by
-    constants taking their current value in the session. The new graph will be
-    pruned so subgraphs that are not necessary to compute the requested
-    outputs are removed.
-    @param session The TensorFlow session to be frozen.
-    @param keep_var_names A list of variable names that should not be frozen,
-                          or None to freeze all the variables in the graph.
-    @param output_names Names of the relevant graph outputs.
-    @param clear_devices Remove the device directives from the graph for better portability.
-    @return The frozen graph definition.
-    """
-    graph = session.graph
-    with graph.as_default():
-        freeze_var_names = list(set(v.op.name for v in tf.global_variables()).difference(keep_var_names or []))
-        output_names = output_names or []
-        output_names += [v.op.name for v in tf.global_variables()]
-        input_graph_def = graph.as_graph_def()
-        if clear_devices:
-            for node in input_graph_def.node:
-                node.device = ""
-        frozen_graph = tf.graph_util.convert_variables_to_constants(
-            session, input_graph_def, output_names, freeze_var_names)
-        return frozen_graph
-
-def experiment(files, Y, classes, N, n_splits):
+def experiment(directory, files, Y, classes, subclasses, N, n_splits):
     # Iterating
     activations = ['tanh']
     earlyStopping = [False]
-
-    output = ''
+    #earlyStopping = [True]
 
     #Iterate over the activation functions, but only tanh is used where
     #Since it obtained the best results
+    for early in earlyStopping:
+        for activation in activations:
+            # try:
+            print('\t\t [+] Training',
+                  '\n\t\t\t [!] Early Stopping', early,
+                  '\n\t\t\t [!] Activation', activation)
 
-    for activation in activations:
-        # try:
-        print('\t\t [+] Training',
-              '\n\t\t\t [!] Activation', activation)
+            #Retreives directory name which includes the activation func,
+            #Creates one chosen activation func if it doesn't exist
+            #name var = "1) Red" + N
+            #N is the number of points
+            direc, name =  get_filename(directory, N,
+                                        early, activation)
+            filename_exp = direc + name
+            yPred = np.array([])
+            yPredSubclass = np.array([])
+            yReal = np.array([])
+            sReal = np.array([])
 
-        yPred = np.array([])
-        yReal = np.array([])
-        sReal = np.array([])
+            modelNum = 0
+            skf = StratifiedKFold(n_splits=n_splits)
 
-        modelNum = 0
+            print('files',files)
+            print('Y',Y)
+            print('Y counts', Counter(Y))
 
-        print('files',files)
-        print('Y',Y)
-        print('Y counts', Counter(Y))
+            for train_index, test_index in skf.split(files, Y):
+                dTrain, dTest = files[train_index], files[test_index]
+                yTrain = Y[train_index]
 
-        dTest = files
+                ##############
+                ### Get DB ###
+                ##############
 
-        # Get Database
-        dTest_1, dTest_2, yTest, sTest = dataset(dTest, N)
+                # Replicate Files
+                dTrain = replicate_by_survey(dTrain, yTrain)
 
-        yReal = np.append(yReal, yTest) #This is class label
-        sReal = np.append(sReal, sTest) #This is survey label
+                # Get Database
+                dTrain_1, dTrain_2, yTrain, ySubclassTrain _ = dataset(dTrain, N)
+                dTest_1, dTest_2, yTest, ySubclassTest, sTest  = dataset(dTest, N)
 
-        del dTest, yTest
+                yReal = np.append(yReal, yTest)
+                sReal = np.append(sReal, sTest)
+                yTrain = class_to_vector(yTrain, classes)
+                ySubclassTrain = class_to_vector(ySubclassTrain, subclasses)
+                yTest = class_to_vector(yTest, classes)
+                ySubclassTest = class_to_vector(ySubclassTest, subclasses)
 
-        # load json and create model
-        json_file = open(base_path + '/Results'+first_stage_location+'/tanh/model/'+str(model_name)+'.json', 'r')
-        loaded_model_json = json_file.read()
-        json_file.close()
-        loaded_model = model_from_json(loaded_model_json)
-        # load weights into new model
-        loaded_model.load_weights(base_path + "/Results"+first_stage_location+""/tanh/model/"+str(model_name)+".h5")
-        print("Loaded model from disk")
+                ################
+                ## Tensorboard #
+                ################
 
-        frozen_graph = freeze_session(K.get_session(),
-                      output_names=[out.op.name for out in loaded_model.outputs])
+                tensorboard = TensorBoard(log_dir= direc + 'logs',
+                                          write_graph=True, write_images=True)
 
-        loaded_model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+                ################
+                ##    Model   ##
+                ################
 
-        #yPred = np.append(yPred, np.argmax(loaded_model.predict([dTest_1, dTest_2]), axis=1)) #Temporarily remove
-        yPred = np.argmax(loaded_model.predict([dTest_1, dTest_2]), axis=1)
-        print(loaded_model.predict([dTest_1, dTest_2]))
+                callbacks = [tensorboard]
+                if early:
+                    earlyStopping = EarlyStopping(monitor='val_loss', patience=3,
+                                                  verbose=0, mode='auto')
+                    callbacks.append(earlyStopping)
 
-        #del dTrain, dTest, yTrain, yTest, loaded_model
-        del loaded_model
+                if num_gpu <= 1:
+                    print("[!] Training with 1 GPU")
+                    model = get_model(N, classes, activation)
+                else:
+                    print("[!] Training with", str(num_gpu), "GPUs")
 
-        yPred = np.array([classes[int(i)]  for i in yPred])
-        #print([yReal, yPred, sReal], len(yPred))
-        print('*'*30)
+                    # We'll store a copy of the model on *every* GPU and then combine
+                    # the results from the gradient updates on the CPU
+                    with tf.device("/cpu:0"):
+                        model = get_model(N, classes, activation)
 
-        print("Checking yPred to check if the classes are being found: ",list(set(yPred)))
+                    # Make the model parallel
+                    model = multi_gpu_model(model, gpus=num_gpu)
 
-        y_actu = pd.Series(yReal, name='Actual')
-        y_pred = pd.Series(yPred, name='Predicted')
-        df_confusion = pd.crosstab(y_actu, y_pred, rownames=['Actual'], colnames=['Predicted'], margins=True)
-        output += df_confusion.to_string() + '\n'
+                model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+                model.fit([dTrain_1, dTrain_2], yTrain,
+                          batch_size=batch_size * num_gpu, epochs=epochs,
+                          validation_split=validation_set, verbose=1,
+                          callbacks=callbacks)
 
-        df_confusion = pd.crosstab(y_actu, y_pred, rownames=['Actual'], colnames=['Predicted'])
-        df_conf_norm = df_confusion / df_confusion.sum(axis=1)
-        output += df_conf_norm.to_string() + '\n'
+                predictedClass = np.argmax(model.predict([dTest_1, dTest_2]))
+                yPred = np.append(yPred, np.argmax(model.predict([dTest_1, dTest_2]), axis=1))
 
-        """
-        Check trends wrt surveys
-        """
-        s_actu = pd.Series(sReal, name='Survey')
-        df_confusion = pd.crosstab([s_actu,y_actu], y_pred, rownames=['Survey','Actual'], colnames=['Predicted'], margins=True)
-        print(df_confusion)
-        output += df_confusion.to_string() + '\n'
+                #################
+                ##  Serialize  ##
+                #################
 
-        comparison = sklearn.metrics.accuracy_score(yReal,yPred)
-        print("Comparison: ",comparison)
-        print('*'*30)
+                modelDirectory = direc + 'model/'
+                if not os.path.exists(modelDirectory):
+                    print('[+] Creating Directory \n\t ->', modelDirectory)
+                    os.mkdir(modelDirectory)
 
-        read_in_data = np.load('ResultsSubclasses/tanh/1) Red 500.npy')
-        y_actu = pd.Series(read_in_data[0], name='Actual')
-        y_pred = pd.Series(read_in_data[1], name='Predicted')
-        s_actu = pd.Series(read_in_data[2], name='Survey')
-        df_confusion = pd.crosstab(y_actu, y_pred, rownames=['Actual'], colnames=['Predicted'])
-        df_conf_norm = df_confusion / df_confusion.sum(axis=1)
-        print(df_conf_norm)
-        df_confusion = pd.crosstab([s_actu,y_actu], y_pred, rownames=['Survey','Actual'], colnames=['Predicted'], margins=True)
-        print(df_confusion)
+                serialize_model(modelDirectory + str(modelNum), model)
+                modelNum += 1
 
-        file_system = zip[files,dTest_1, dTest_2, yTest, sTest,yPred]
-        for var_class in classes:
+                del model
+                # break
 
+                ######################
+                ##   Second Model   ##
+                ######################
 
+                callbacks = [tensorboard]
+                if early:
+                    earlyStopping = EarlyStopping(monitor='val_loss', patience=3,
+                                                  verbose=0, mode='auto')
+                    callbacks.append(earlyStopping)
 
-    return output
+                if num_gpu <= 1:
+                    print("[!] Training with 1 GPU")
+                    model = get_subclass_model(N, classes, subclasses, activation)
+                else:
+                    print("[!] Training with", str(num_gpu), "GPUs")
+
+                    # We'll store a copy of the model on *every* GPU and then combine
+                    # the results from the gradient updates on the CPU
+                    with tf.device("/cpu:0"):
+                        model = get_subclass_model(N, classes, subclasses, activation)
+
+                    # Make the model parallel
+                    model = multi_gpu_model(model, gpus=num_gpu)
+
+                model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+                model.fit([dTrain_1, dTrain_2, predictedClass], ySubclassTrain,
+                          batch_size=batch_size * num_gpu, epochs=epochs,
+                          validation_split=validation_set, verbose=1,
+                          callbacks=callbacks)
+
+                yPredSubclass = np.append(yPredSubclass, np.argmax(model.predict([dTest_1, dTest_2]), axis=1))
+
+                #############################
+                ##  Serialize Second Model ##
+                #############################
+
+                modelDirectory = direc + 'model/'
+                if not os.path.exists(modelDirectory):
+                    print('[+] Creating Directory \n\t ->', modelDirectory)
+                    os.mkdir(modelDirectory)
+
+                serialize_model(modelDirectory + str(modelNum), model)
+                modelNum += 1
+
+                del dTrain, dTest, yTrain, yTest, model
+                # break
+
+            yPred = np.array([classes[int(i)]  for i in yPred])
+
+            # Save Matrix
+            print('\n \t\t\t [+] Saving Results in', filename_exp)
+            np.save(filename_exp, [yReal, yPred, sReal])
+            print('*'*30)
+            # except Exception as e:
+            #     print('\t\t\t [!] Fatal Error:\n\t\t', str(e))
+
+            ############################
+            ##  Save Confusion Matrix ##
+            ############################
+
+            output = 'Confusion Matrix For Each Model Iteration:' + '\n'
+            y_actu = pd.Series(yReal, name='Actual')
+            y_pred = pd.Series(yPred, name='Predicted')
+            df_confusion = pd.crosstab(y_actu, y_pred, rownames=['Actual'], colnames=['Predicted'], margins=True)
+            output += df_confusion.to_string() + '\n'
+
+            df_confusion = pd.crosstab(y_actu, y_pred, rownames=['Actual'], colnames=['Predicted'])
+            df_conf_norm = df_confusion / df_confusion.sum(axis=1)
+            output += df_conf_norm.to_string() + '\n'
+
+            s_actu = pd.Series(sReal, name='Survey')
+            df_confusion = pd.crosstab([s_actu,y_actu], y_pred, rownames=['Survey','Actual'], colnames=['Predicted'], margins=True)
+            output += df_confusion.to_string() + '\n'
+
+            text_file = open("ResultsV2/Model Accuracy.txt", "a")
+            text_file.write(output)
+            text_file.close()
+
+            comparison = sklearn.metrics.accuracy_score(yReal,yPred)
+            print("Comparison: ",comparison)
+            print('*'*30)
+
 
 
 print('[+] Getting Filenames')
@@ -693,12 +906,13 @@ for file, num in files:
 YSubClass = np.array(YSubClass)
 
 NUMBER_OF_POINTS = 500
+NUMBER_OF_POINTS = 250
 while NUMBER_OF_POINTS <= MAX_NUMBER_OF_POINTS:
 
     print("Running Experiment")
-    output = experiment(files, YSubClass, subclasses, NUMBER_OF_POINTS, n_splits)
+    output = experiment(files, YSubClass, classes, subclasses, NUMBER_OF_POINTS, n_splits)
     NUMBER_OF_POINTS += step
 
-    text_file = open("ResultsSubclasses/Accuracy last model.txt", "a")
+    text_file = open("ResultsV2/Accuracy last model.txt", "a")
     text_file.write(output)
     text_file.close()

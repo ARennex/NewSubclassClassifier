@@ -511,6 +511,35 @@ def get_model(N, classes, activation='relu'):
 
     return model
 
+def get_subclass_model(N, classes, subclasses, activation='relu'):
+    conv1 = Conv1D(filters, kernel_size, activation='relu')
+    conv2 = Conv1D(filters2, kernel_size2, activation='relu')
+
+    # For Time Tower
+    input1 = Input((N, 1))
+    out1 = conv1(input1)
+    out1 = conv2(out1)
+
+    # For Magnitude Tower
+    input2 = Input((N, 1))
+    out2 = conv1(input2)
+    out2 = conv2(out2)
+
+    # For the previous superclass classification
+    input3 = Input((len(classes),1))
+
+    out = Concatenate()([out1, out2])
+    out = Flatten()(out)
+    out = Concatenate()([out, input3])
+    out = Dropout(dropout)(out)
+    out = Dense(hidden_dims, activation=activation)(out)
+    out = Dropout(dropout)(out)
+    out = Dense(len(subclasses), activation='softmax')(out)
+
+    model = Model([input1, input2, input3], out)
+
+    return model
+
 def class_to_vector(Y, classes):
     new_y = []
     for y in Y:
@@ -555,6 +584,7 @@ def experiment(directory, files, Y, classes, N, n_splits):
                                         early, activation)
             filename_exp = direc + name
             yPred = np.array([])
+            yPredSubclass = np.array([])
             yReal = np.array([])
             sReal = np.array([])
 
@@ -577,13 +607,15 @@ def experiment(directory, files, Y, classes, N, n_splits):
                 dTrain = replicate_by_survey(dTrain, yTrain)
 
                 # Get Database
-                dTrain_1, dTrain_2, yTrain, _ = dataset(dTrain, N)
-                dTest_1, dTest_2, yTest, sTest  = dataset(dTest, N)
+                dTrain_1, dTrain_2, yTrain, ySubclassTrain _ = dataset(dTrain, N)
+                dTest_1, dTest_2, yTest, ySubclassTest, sTest  = dataset(dTest, N)
 
                 yReal = np.append(yReal, yTest)
                 sReal = np.append(sReal, sTest)
                 yTrain = class_to_vector(yTrain, classes)
+                ySubclassTrain = class_to_vector(ySubclassTrain, subclasses)
                 yTest = class_to_vector(yTest, classes)
+                ySubclassTest = class_to_vector(ySubclassTest, subclasses)
 
                 ################
                 ## Tensorboard #
@@ -622,11 +654,59 @@ def experiment(directory, files, Y, classes, N, n_splits):
                           validation_split=validation_set, verbose=1,
                           callbacks=callbacks)
 
+                predictedClass = np.argmax(model.predict([dTest_1, dTest_2]))
                 yPred = np.append(yPred, np.argmax(model.predict([dTest_1, dTest_2]), axis=1))
 
                 #################
                 ##  Serialize  ##
                 #################
+
+                modelDirectory = direc + 'model/'
+                if not os.path.exists(modelDirectory):
+                    print('[+] Creating Directory \n\t ->', modelDirectory)
+                    os.mkdir(modelDirectory)
+
+                serialize_model(modelDirectory + str(modelNum), model)
+                modelNum += 1
+
+                del model
+                # break
+
+                ######################
+                ##   Second Model   ##
+                ######################
+
+                callbacks = [tensorboard]
+                if early:
+                    earlyStopping = EarlyStopping(monitor='val_loss', patience=3,
+                                                  verbose=0, mode='auto')
+                    callbacks.append(earlyStopping)
+
+                if num_gpu <= 1:
+                    print("[!] Training with 1 GPU")
+                    model = get_subclass_model(N, classes, subclasses, activation)
+                else:
+                    print("[!] Training with", str(num_gpu), "GPUs")
+
+                    # We'll store a copy of the model on *every* GPU and then combine
+                    # the results from the gradient updates on the CPU
+                    with tf.device("/cpu:0"):
+                        model = get_subclass_model(N, classes, subclasses, activation)
+
+                    # Make the model parallel
+                    model = multi_gpu_model(model, gpus=num_gpu)
+
+                model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+                model.fit([dTrain_1, dTrain_2, predictedClass], ySubclassTrain,
+                          batch_size=batch_size * num_gpu, epochs=epochs,
+                          validation_split=validation_set, verbose=1,
+                          callbacks=callbacks)
+
+                yPredSubclass = np.append(yPredSubclass, np.argmax(model.predict([dTest_1, dTest_2]), axis=1))
+
+                #############################
+                ##  Serialize Second Model ##
+                #############################
 
                 modelDirectory = direc + 'model/'
                 if not os.path.exists(modelDirectory):
