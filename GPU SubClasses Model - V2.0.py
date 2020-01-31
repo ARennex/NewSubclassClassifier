@@ -30,7 +30,7 @@ num_gpu = args["gpus"]
 
 ## Settings
 # Files Setting
-limit = 10000 # Maximum amount of Star Per Class Per Survey
+limit = 1000 # Maximum amount of Star Per Class Per Survey
 extraRandom = True
 permutation = True # Permute Files
 BALANCE_DB = True # Balance or not
@@ -74,9 +74,9 @@ class_loc2 = one_up + '/Data/VVV/**/**/**/**/*.csv'
 class_loc3 = one_up + '/Data/ASASSN/**/**/**/*.dat'
 
 #Subclass locations
-regular_exp1 = one_up + '/Data/OGLE/lpv/**/**/*.dat'
-regular_exp2 = one_up + '/Data/VVV/lpv/**/**/**/*.csv'
-regular_exp3 = one_up + '/Data/ASASSN/lpv/**/**/*.dat'
+regular_exp1 = one_up + '/Data/OGLE/**/**/**/*.dat'
+regular_exp2 = one_up + '/Data/VVV/**/**/**/**/*.csv'
+regular_exp3 = one_up + '/Data/ASASSN/**/**/**/*.dat'
 
 ## Open Databases
 classes = ['lpv','cep','rrlyr','ecl']
@@ -503,7 +503,9 @@ def dataset(files, N):
     #for file, num in tqdm(files):
     for file, num in files:
         num = int(num)
-        t, m, e, c, sc, s = None, None, None, get_name(file), get_survey(file)
+        t, m, e, c, sc, s = None, None, None, get_name(file), get_subclass_name(file), get_survey(file)
+        #print(t, m, e, c, sc, s)
+        #exit()
         if c in classes:
             if sc in subclasses:
                 if 'VVV' in file:
@@ -512,14 +514,14 @@ def dataset(files, N):
                     t, m, e = open_ogle(file, num, N, [0,1,2])
                 elif 'ASASSN' in file:
                     t, m, e = open_asassn(file, num, N, [0,2,3])
-                if c in subclasses:
+                if (c in classes) and (sc in subclasses):
                     input_1.append(create_matrix(t, N))
                     input_2.append(create_matrix(m, N))
                     yClassTrain.append(c)
                     ySubclassTrain.append(sc)
                     survey.append(s)
                 else:
-                    print('\t [!] E2 File not passed: ', file, '\n\t\t - Class: ',  c)
+                    print('\t [!] E3 File not passed: ', file, '\n\t\t - Sub/Class: ', sc, c)
             else:
                 print('\t [!] E2 File not passed: ', file, '\n\t\t - Subclass: ',  sc)
         else:
@@ -568,13 +570,21 @@ def get_subclass_model(N, classes, subclasses, activation='relu'):
     out2 = conv2(out2)
 
     # For the previous superclass classification
-    input3 = Input((len(classes),1))
+    #input3 = Input((len(classes),1))
+    # flatten_input = Flatten()(input3)
+    # temp_hidden_dims = hidden_dims + len(classes)
+    # flattenclasses = Dense(64, activation=activation)(flatten_input)
+    input3 = Input((N,1))
+    flatten_classes = Dense(64, activation=activation)(input3)
+    flatten_output = Flatten()(flatten_classes)
+    #temp_hidden_dims = hidden_dims + len(classes)
+
 
     out = Concatenate()([out1, out2])
     out = Flatten()(out)
-    out = Concatenate()([out, input3])
     out = Dropout(dropout)(out)
     out = Dense(hidden_dims, activation=activation)(out)
+    out = Concatenate()([out, flatten_output])
     out = Dropout(dropout)(out)
     out = Dense(len(subclasses), activation='softmax')(out)
 
@@ -707,7 +717,7 @@ def experiment(directory, files, Y, classes, subclasses, N, n_splits):
     # Iterating
     activations = ['tanh']
     earlyStopping = [False]
-    #earlyStopping = [True]
+    earlyStopping = [True]
 
     #Iterate over the activation functions, but only tanh is used where
     #Since it obtained the best results
@@ -729,6 +739,7 @@ def experiment(directory, files, Y, classes, subclasses, N, n_splits):
             yPredSubclass = np.array([])
             yReal = np.array([])
             sReal = np.array([])
+            test_array = np.array([])
 
             modelNum = 0
             skf = StratifiedKFold(n_splits=n_splits)
@@ -749,7 +760,7 @@ def experiment(directory, files, Y, classes, subclasses, N, n_splits):
                 dTrain = replicate_by_survey(dTrain, yTrain)
 
                 # Get Database
-                dTrain_1, dTrain_2, yTrain, ySubclassTrain _ = dataset(dTrain, N)
+                dTrain_1, dTrain_2, yTrain, ySubclassTrain, _ = dataset(dTrain, N)
                 dTest_1, dTest_2, yTest, ySubclassTest, sTest  = dataset(dTest, N)
 
                 yReal = np.append(yReal, yTest)
@@ -796,8 +807,12 @@ def experiment(directory, files, Y, classes, subclasses, N, n_splits):
                           validation_split=validation_set, verbose=1,
                           callbacks=callbacks)
 
-                predictedClass = np.argmax(model.predict([dTest_1, dTest_2]))
+                #predictedTesting= np.argmax(model.predict([dTest_1, dTest_2]))
+                #predictedTraining= np.argmax(model.predict([dTrain_1, dTrain_2]))
+                test_array = np.append(test_array, np.argmax(model.predict([dTrain_1, dTrain_2]), axis=1))
                 yPred = np.append(yPred, np.argmax(model.predict([dTest_1, dTest_2]), axis=1))
+                print(np.array([classes[int(i)]  for i in yPred]))
+                print(len(yPred))
 
                 #################
                 ##  Serialize  ##
@@ -839,12 +854,12 @@ def experiment(directory, files, Y, classes, subclasses, N, n_splits):
                     model = multi_gpu_model(model, gpus=num_gpu)
 
                 model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
-                model.fit([dTrain_1, dTrain_2, predictedClass], ySubclassTrain,
+                model.fit([dTrain_1, dTrain_2, test_array], ySubclassTrain,
                           batch_size=batch_size * num_gpu, epochs=epochs,
                           validation_split=validation_set, verbose=1,
                           callbacks=callbacks)
 
-                yPredSubclass = np.append(yPredSubclass, np.argmax(model.predict([dTest_1, dTest_2]), axis=1))
+                yPredSubclass = np.append(yPredSubclass, np.argmax(model.predict([dTest_1, dTest_2, yPred]), axis=1))
 
                 #############################
                 ##  Serialize Second Model ##
@@ -899,20 +914,21 @@ def experiment(directory, files, Y, classes, subclasses, N, n_splits):
 
 
 print('[+] Getting Filenames')
-files = np.array(get_files(extraRandom, permutation))
+files = np.array(get_class(extraRandom, permutation))
 YSubClass = []
 for file, num in files:
     YSubClass.append(get_name_with_survey(file))
 YSubClass = np.array(YSubClass)
 
 NUMBER_OF_POINTS = 500
-NUMBER_OF_POINTS = 250
+#NUMBER_OF_POINTS = 250
 while NUMBER_OF_POINTS <= MAX_NUMBER_OF_POINTS:
 
-    print("Running Experiment")
-    output = experiment(files, YSubClass, classes, subclasses, NUMBER_OF_POINTS, n_splits)
-    NUMBER_OF_POINTS += step
+    # Create Folder
+    directory = './Results' + final_stage_location
+    if not os.path.exists(directory):
+        print('[+] Creating Directory \n\t ->', directory)
+        os.mkdir(directory)
 
-    text_file = open("ResultsV2/Accuracy last model.txt", "a")
-    text_file.write(output)
-    text_file.close()
+    experiment(directory, files, YSubClass, classes, subclasses, NUMBER_OF_POINTS, n_splits)
+    NUMBER_OF_POINTS += step
