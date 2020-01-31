@@ -30,7 +30,7 @@ num_gpu = args["gpus"]
 
 ## Settings
 # Files Setting
-limit = 1000 # Maximum amount of Star Per Class Per Survey
+limit = 500 # Maximum amount of Star Per Class Per Survey
 extraRandom = True
 permutation = True # Permute Files
 BALANCE_DB = True # Balance or not
@@ -570,22 +570,26 @@ def get_subclass_model(N, classes, subclasses, activation='relu'):
     out2 = conv2(out2)
 
     # For the previous superclass classification
-    #input3 = Input((len(classes),1))
+    input3 = Input((len(classes),1))
     # flatten_input = Flatten()(input3)
     # temp_hidden_dims = hidden_dims + len(classes)
     # flattenclasses = Dense(64, activation=activation)(flatten_input)
-    input3 = Input((N,1))
-    flatten_classes = Dense(64, activation=activation)(input3)
+    #input3 = Input((N,1))
+    flatten_classes = Dense(128, activation=activation)(input3)
     flatten_output = Flatten()(flatten_classes)
     #temp_hidden_dims = hidden_dims + len(classes)
 
 
     out = Concatenate()([out1, out2])
+    print(out)
+    print(K.shape(out))
     out = Flatten()(out)
     out = Dropout(dropout)(out)
     out = Dense(hidden_dims, activation=activation)(out)
-    out = Concatenate()([out, flatten_output])
     out = Dropout(dropout)(out)
+    print(out, flatten_output)
+    print(K.shape(out),K.shape(flatten_output))
+    out = Concatenate()([out, flatten_output])
     out = Dense(len(subclasses), activation='softmax')(out)
 
     model = Model([input1, input2, input3], out)
@@ -853,6 +857,9 @@ def experiment(directory, files, Y, classes, subclasses, N, n_splits):
                     # Make the model parallel
                     model = multi_gpu_model(model, gpus=num_gpu)
 
+                from keras.utils import plot_model
+                plot_model(model, to_file='model.png')
+
                 model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
                 model.fit([dTrain_1, dTrain_2, test_array], ySubclassTrain,
                           batch_size=batch_size * num_gpu, epochs=epochs,
@@ -921,7 +928,7 @@ for file, num in files:
 YSubClass = np.array(YSubClass)
 
 NUMBER_OF_POINTS = 500
-#NUMBER_OF_POINTS = 250
+NUMBER_OF_POINTS = 250
 while NUMBER_OF_POINTS <= MAX_NUMBER_OF_POINTS:
 
     # Create Folder
