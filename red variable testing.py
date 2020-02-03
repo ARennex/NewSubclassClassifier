@@ -8,7 +8,8 @@ import seaborn as sns
 makePlot = False
 makePlot2 = False
 makePlot3 = False
-makePlot4 = True
+makePlot4 = False
+makePlot5 = True
 
 # vvv_data_files = 'results*.csv'
 # files_collection = np.array(list(glob.iglob(vvv_data_files, recursive=True)))
@@ -87,12 +88,33 @@ for vvv_file in files_collection:
         # g.ax_joint.invert_yaxis()
         # plt.show()
 
-        g = sns.JointGrid('period', 'wesenheit', per_clipped)
-        #g.plot_marginals(sns.distplot, hist=True, kde=True, color='blue',bins=mybins)
-        g.plot_joint(plt.scatter, color='black', edgecolor='black')
-        ax = g.ax_joint
-        ax.set_xscale('log')
-        ax.set_yscale('log')
-        g.ax_marg_x.set_xscale('log')
-        g.ax_marg_y.set_yscale('log')
+        g = sns.jointplot(x=per_clipped["log10_period"], y=per_clipped["wesenheit"], kind='hex')
+        g.ax_joint.invert_yaxis()
         g.savefig('Long Period Red Stars/WesenheitVSPeriod Focused 2.png')
+
+        plt.hexbin(per_clipped["log10_period"], per_clipped["wesenheit"], gridsize=(50,50))
+        plt.colorbar()
+        plt.savefig('Long Period Red Stars/WesenheitVSPeriod Focused 3.png')
+
+        plt.hexbin(per_clipped["log10_period"], per_clipped["wesenheit"], gridsize=(25,25))
+        plt.colorbar()
+        plt.savefig('Long Period Red Stars/WesenheitVSPeriod Focused 4.png')
+
+    per_clipped = per_clipped[per_clipped['period'] > 5]
+    print(per_clipped)
+    if makePlot5:
+        g = sns.jointplot(x=per_clipped["log10_period"], y=per_clipped["wesenheit"], kind='kde', color="grey", space=0)
+        g.ax_joint.invert_yaxis()
+        g.savefig('Long Period Red Stars/WesenheitVSPeriod Focused Long.png')
+
+        g = sns.jointplot(x=per_clipped["log10_period"], y=per_clipped["wesenheit"], kind='hex')
+        g.ax_joint.invert_yaxis()
+        g.savefig('Long Period Red Stars/WesenheitVSPeriod Focused Long 2.png')
+
+        plt.hexbin(per_clipped["log10_period"], per_clipped["wesenheit"], gridsize=(50,50))
+        plt.colorbar()
+        plt.savefig('Long Period Red Stars/WesenheitVSPeriod Focused Long 3.png')
+
+        plt.hexbin(per_clipped["log10_period"], per_clipped["wesenheit"], gridsize=(25,25))
+        plt.colorbar()
+        plt.savefig('Long Period Red Stars/WesenheitVSPeriod Focused Long 4.png')
