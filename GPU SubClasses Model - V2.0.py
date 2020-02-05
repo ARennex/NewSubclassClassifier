@@ -30,7 +30,7 @@ num_gpu = args["gpus"]
 
 ## Settings
 # Files Setting
-limit = 500 # Maximum amount of Star Per Class Per Survey
+limit = 4000 # Maximum amount of Star Per Class Per Survey
 extraRandom = True
 permutation = True # Permute Files
 BALANCE_DB = True # Balance or not
@@ -39,7 +39,7 @@ maximum = 5
 # Mini Settings
 MAX_NUMBER_OF_POINTS = 500
 NUMBER_OF_POINTS = 500
-n_splits = 10
+n_splits = 5
 validation_set = 0.2
 
 # Iterations
@@ -835,10 +835,15 @@ def experiment(directory, files, Y, classes, subclasses, N, n_splits):
                 #######
                 #rearragne label data - for the second model
                 #######
-                print(model.predict([dTrain_1, dTrain_2]).shape())
-                print(np.array(model.predict([dTrain_1, dTrain_2])))
-                training_input = np.reshape(np.array(model.predict([dTrain_1, dTrain_2])), (-1,1,1))
-                testing_input = np.reshape(model.predict([dTest_1, dTest_2]), (-1,1,1))
+                # print(model.predict([dTrain_1, dTrain_2]))
+                # print(type(model.predict([dTrain_1, dTrain_2])))
+                # print(np.argmax(model.predict([dTrain_1, dTrain_2]), axis=1))
+                # print(np.array(model.predict([dTrain_1, dTrain_2])))
+                # print(type(np.array(model.predict([dTrain_1, dTrain_2]))))
+                training_input = np.reshape(np.array(model.predict([dTrain_1, dTrain_2])), (-1,4,1)) #4 because 4 superclasses
+                testing_input = np.reshape(np.array(model.predict([dTest_1, dTest_2])), (-1,4,1))
+                #print((dTrain_1.shape),(dTrain_2.shape),(test_array.shape))
+                #print((training_input.shape),(testing_input.shape))
 
                 del model
                 # break
@@ -869,13 +874,6 @@ def experiment(directory, files, Y, classes, subclasses, N, n_splits):
 
                 from keras.utils import plot_model
                 plot_model(model, to_file='model.png')
-
-                print((dTrain_1.shape),(dTrain_2.shape),(test_array.shape))
-
-                #training_input = np.reshape(test_array, (-1,1,1))
-                #testing_input = np.reshape(yPred, (-1,1,1))
-
-                print((training_input.shape),(testing_input.shape))
 
                 model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
                 model.fit([dTrain_1, dTrain_2, training_input], ySubclassTrain,
@@ -929,7 +927,7 @@ def experiment(directory, files, Y, classes, subclasses, N, n_splits):
             df_confusion = pd.crosstab([s_actu,y_actu], y_pred, rownames=['Survey','Actual'], colnames=['Predicted'], margins=True)
             output += df_confusion.to_string() + '\n'
 
-            text_file = open("ResultsV2/Model Accuracy.txt", "a")
+            text_file = open("ResultsMultilayer/Model Accuracy.txt", "a")
             text_file.write(output)
             text_file.close()
 
