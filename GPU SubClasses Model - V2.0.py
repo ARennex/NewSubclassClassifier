@@ -584,12 +584,12 @@ def get_subclass_model(N, classes, subclasses, activation='relu'):
     print(out)
     print(K.shape(out))
     out = Flatten()(out)
+    out = Concatenate()([out, flatten_output])
     out = Dropout(dropout)(out)
     out = Dense(hidden_dims, activation=activation)(out)
     out = Dropout(dropout)(out)
     print(out, flatten_output)
     print(K.shape(out),K.shape(flatten_output))
-    out = Concatenate()([out, flatten_output])
     out = Dense(len(subclasses), activation='softmax')(out)
 
     model = Model([input1, input2, input3], out)
@@ -830,6 +830,16 @@ def experiment(directory, files, Y, classes, subclasses, N, n_splits):
                 serialize_model(modelDirectory + str(modelNum), model)
                 modelNum += 1
 
+
+
+                #######
+                #rearragne label data - for the second model
+                #######
+                print(model.predict([dTrain_1, dTrain_2]).shape())
+                print(np.array(model.predict([dTrain_1, dTrain_2])))
+                training_input = np.reshape(np.array(model.predict([dTrain_1, dTrain_2])), (-1,1,1))
+                testing_input = np.reshape(model.predict([dTest_1, dTest_2]), (-1,1,1))
+
                 del model
                 # break
 
@@ -860,13 +870,22 @@ def experiment(directory, files, Y, classes, subclasses, N, n_splits):
                 from keras.utils import plot_model
                 plot_model(model, to_file='model.png')
 
+                print((dTrain_1.shape),(dTrain_2.shape),(test_array.shape))
+
+                #training_input = np.reshape(test_array, (-1,1,1))
+                #testing_input = np.reshape(yPred, (-1,1,1))
+
+                print((training_input.shape),(testing_input.shape))
+
                 model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
-                model.fit([dTrain_1, dTrain_2, test_array], ySubclassTrain,
+                model.fit([dTrain_1, dTrain_2, training_input], ySubclassTrain,
                           batch_size=batch_size * num_gpu, epochs=epochs,
                           validation_split=validation_set, verbose=1,
                           callbacks=callbacks)
 
-                yPredSubclass = np.append(yPredSubclass, np.argmax(model.predict([dTest_1, dTest_2, yPred]), axis=1))
+                yPredSubclass = np.append(yPredSubclass, np.argmax(model.predict([dTest_1, dTest_2, testing_input]), axis=1))
+
+                #Should this not just be yReal instead of testing input? Or the version for superclasses?
 
                 #############################
                 ##  Serialize Second Model ##
