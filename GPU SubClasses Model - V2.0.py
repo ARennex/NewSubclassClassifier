@@ -721,7 +721,7 @@ def experiment(directory, files, Y, classes, subclasses, N, n_splits):
     # Iterating
     activations = ['tanh']
     earlyStopping = [False]
-    earlyStopping = [True]
+    #earlyStopping = [True]
 
     #Iterate over the activation functions, but only tanh is used where
     #Since it obtained the best results
