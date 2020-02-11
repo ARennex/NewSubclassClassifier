@@ -743,7 +743,7 @@ def experiment(directory, files, Y, classes, subclasses, N, n_splits):
             yPredSubclass = np.array([])
             yReal = np.array([])
             sReal = np.array([])
-            test_array = np.array([])
+            subclassReal = np.array([])
 
             modelNum = 0
             skf = StratifiedKFold(n_splits=n_splits)
@@ -768,6 +768,7 @@ def experiment(directory, files, Y, classes, subclasses, N, n_splits):
                 dTest_1, dTest_2, yTest, ySubclassTest, sTest  = dataset(dTest, N)
 
                 yReal = np.append(yReal, yTest)
+                subclassReal = np.append(subclassReal, ySubclassTest)
                 sReal = np.append(sReal, sTest)
                 yTrain = class_to_vector(yTrain, classes)
                 ySubclassTrain = class_to_vector(ySubclassTrain, subclasses)
@@ -813,7 +814,6 @@ def experiment(directory, files, Y, classes, subclasses, N, n_splits):
 
                 #predictedTesting= np.argmax(model.predict([dTest_1, dTest_2]))
                 #predictedTraining= np.argmax(model.predict([dTrain_1, dTrain_2]))
-                test_array = np.append(test_array, np.argmax(model.predict([dTrain_1, dTrain_2]), axis=1))
                 yPred = np.append(yPred, np.argmax(model.predict([dTest_1, dTest_2]), axis=1))
                 print(np.array([classes[int(i)]  for i in yPred]))
                 print(len(yPred))
@@ -842,10 +842,9 @@ def experiment(directory, files, Y, classes, subclasses, N, n_splits):
                 # print(type(np.array(model.predict([dTrain_1, dTrain_2]))))
                 training_input = np.reshape(np.array(model.predict([dTrain_1, dTrain_2])), (-1,4,1)) #4 because 4 superclasses
                 testing_input = np.reshape(np.array(model.predict([dTest_1, dTest_2])), (-1,4,1))
-                #print((dTrain_1.shape),(dTrain_2.shape),(test_array.shape))
-                #print((training_input.shape),(testing_input.shape))
 
-                del model
+
+                del yTrain, yTest, model
                 # break
 
                 ######################
@@ -897,14 +896,15 @@ def experiment(directory, files, Y, classes, subclasses, N, n_splits):
                 serialize_model(modelDirectory + str(modelNum), model)
                 modelNum += 1
 
-                del dTrain, dTest, yTrain, yTest, model
+                del dTrain, dTest, ySubclassTrain, ySubclassTest, model
                 # break
 
             yPred = np.array([classes[int(i)]  for i in yPred])
+            yPredSubclass = np.array([subclasses[int(i)]  for i in yPred])
 
             # Save Matrix
             print('\n \t\t\t [+] Saving Results in', filename_exp)
-            np.save(filename_exp, [yReal, yPred, sReal])
+            np.save(filename_exp, [yReal, yPred, subclassReal, yPredSubclass, sReal])
             print('*'*30)
             # except Exception as e:
             #     print('\t\t\t [!] Fatal Error:\n\t\t', str(e))
@@ -916,6 +916,11 @@ def experiment(directory, files, Y, classes, subclasses, N, n_splits):
             output = 'Confusion Matrix For Each Model Iteration:' + '\n'
             y_actu = pd.Series(yReal, name='Actual')
             y_pred = pd.Series(yPred, name='Predicted')
+            df_confusion = pd.crosstab(y_actu, y_pred, rownames=['Actual'], colnames=['Predicted'], margins=True)
+            output += df_confusion.to_string() + '\n'
+
+            y_actu = pd.Series(subclassReal, name='Actual')
+            y_pred = pd.Series(yPredSubclass, name='Predicted')
             df_confusion = pd.crosstab(y_actu, y_pred, rownames=['Actual'], colnames=['Predicted'], margins=True)
             output += df_confusion.to_string() + '\n'
 
