@@ -37,8 +37,8 @@ BALANCE_DB = True # Balance or not
 maximum = 5
 
 # Mini Settings
-MAX_NUMBER_OF_POINTS = 500
-NUMBER_OF_POINTS = 500
+MAX_NUMBER_OF_POINTS = 250
+NUMBER_OF_POINTS = 250
 n_splits = 5
 validation_set = 0.2
 
@@ -900,7 +900,7 @@ def experiment(directory, files, Y, classes, subclasses, N, n_splits):
                 # break
 
             yPred = np.array([classes[int(i)]  for i in yPred])
-            yPredSubclass = np.array([subclasses[int(i)]  for i in yPred])
+            yPredSubclass = np.array([subclasses[int(i)]  for i in yPredSubclass])
 
             # Save Matrix
             print('\n \t\t\t [+] Saving Results in', filename_exp)
