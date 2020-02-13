@@ -30,16 +30,16 @@ num_gpu = args["gpus"]
 
 ## Settings
 # Files Setting
-limit = 4000 # Maximum amount of Star Per Class Per Survey
+limit = 5000 # Maximum amount of Star Per Class Per Survey
 extraRandom = True
 permutation = True # Permute Files
 BALANCE_DB = True # Balance or not
 maximum = 5
 
 # Mini Settings
-MAX_NUMBER_OF_POINTS = 250
-NUMBER_OF_POINTS = 250
-n_splits = 5
+MAX_NUMBER_OF_POINTS = 500
+NUMBER_OF_POINTS = 500
+n_splits = 7
 validation_set = 0.2
 
 # Iterations
@@ -60,7 +60,7 @@ kernel_size2 = 50
 
 # Paths
 first_stage_location = 'Classes'
-final_stage_location = 'MultiLayer'
+final_stage_location = 'MultiLayer2'
 base_path = os.getcwd()
 
 from pathlib import Path
@@ -950,7 +950,7 @@ for file, num in files:
 YSubClass = np.array(YSubClass)
 
 NUMBER_OF_POINTS = 500
-NUMBER_OF_POINTS = 250
+#NUMBER_OF_POINTS = 250
 while NUMBER_OF_POINTS <= MAX_NUMBER_OF_POINTS:
 
     # Create Folder
