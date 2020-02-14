@@ -5,7 +5,7 @@ import glob
 import os
 import seaborn as sns
 
-makePlot = False
+magAplPlot = False
 OSARGCheck = True
 
 def corr(x, y, **kwargs):
@@ -24,8 +24,6 @@ variableColumnName = [' cflvsc.MainVarType']
 os.makedirs(('Verified Crossmatched Stars/'), exist_ok=True)
 
 crossmatchedData = pd.read_csv('cflvsc_r01_crosssources.dat',sep=',')
-#print(crossmatchedData.columns)
-#print(crossmatchedData[' cflvsc.MainVarType'].unique())
 
 #[LPV, M, RGB, SR, PUL, L, PER]
 lpvPossibleObjects = ['  LPV','  M' ,'  RGB','  SR','  PUL','  L','  PER']
@@ -39,30 +37,41 @@ print(lpvCandidates.columns)
 # Ks Mag against Amplitude #
 ###################################################
 
-os.makedirs(('Verified Crossmatched Stars/ksMag/'), exist_ok=True)
-lpvCandidates = lpvCandidates[lpvCandidates[' cflvsc.ksAperMag3'] < 100]
-lpvCandidates = lpvCandidates[lpvCandidates[' cflvsc.ksAperMag3'] > 0]
-print(lpvCandidates)
+if magAplPlot == True:
 
-#plt.scatter(x=per_clipped["log10_period"], y=per_clipped["wesenheit"], s=70, alpha=0.03)
-sns.lmplot( x=" cflvsc.Avar", y=" cflvsc.ksAperMag3", data=lpvCandidates, fit_reg=False, hue=' cflvsc.MainVarType', legend=False)
+    os.makedirs(('Verified Crossmatched Stars/ksMag/'), exist_ok=True)
+    lpvCandidates = lpvCandidates[lpvCandidates[' cflvsc.ksEMeanMagPawprint'] < 100]
+    lpvCandidates = lpvCandidates[lpvCandidates[' cflvsc.ksEMeanMagPawprint'] > 0]
+    print(lpvCandidates)
 
-# Move the legend to an empty part of the plot
-plt.legend(loc='lower right')
-plt.savefig("Verified Crossmatched Stars/ksMag/ksmag VS amplitude.png")
-plt.clf()
-#plt.show()
+    # magnitudes = [' cflvsc.zAperMag3', ' cflvsc.yAperMag3',' cflvsc.jAperMag3',' cflvsc.hAperMag3',' cflvsc.ksAperMag3']
+    # for mags in magnitudes:
+    #     temp = lpvCandidates[lpvCandidates[mags] < 100]
+    #     temp = temp[temp[mags] > 0]
+    #     print(temp)
 
-# colours = ['r','b','g']
-# subclass = np.array(lpvCandidates[variableColumnName[0]].unique())
-# for subcounter in [1,2,3]:
-#     temp = lpvCandidates[variableColumnName[0]] == subclass[subcounter-1]
-#     temp_data = lpvCandidates[temp]
-#     grid = sns.jointplot(x=" cflvsc.Avar", y=" cflvsc.ksAperMag3", data=temp_data, kind='kde', space=0, color = colours[subcounter-1])
-#     plt.savefig("Verified Crossmatched Stars/ksMag/"+subclass[subcounter-1]+"ksmag VS amplitude.png")
-#     plt.clf()
+    temp = lpvCandidates[['#cflvsc.sourceID',' cflvsc.ksAperMag3',' cflvsc.ksEMeanMagPawprint',' cflvsc.MainVarType']]
+    temp.to_csv("missing lpvs.csv",index=False)
 
-#quit()
+    #plt.scatter(x=per_clipped["log10_period"], y=per_clipped["wesenheit"], s=70, alpha=0.03)
+    sns.lmplot( x=" cflvsc.Avar", y=" cflvsc.ksEMeanMagPawprint", data=lpvCandidates, fit_reg=False, hue=' cflvsc.MainVarType', legend=False)
+
+    # Move the legend to an empty part of the plot
+    plt.legend(loc='lower right')
+    plt.savefig("Verified Crossmatched Stars/ksMag/ksmag VS amplitude.png")
+    plt.clf()
+    #plt.show()
+
+    colours = ['r','b','g']
+    subclass = np.array(lpvCandidates[variableColumnName[0]].unique())
+    colours = sns.color_palette("coolwarm", len(subclass))
+    print(colours)
+    for subcounter in range(0,len(subclass)):
+        temp = lpvCandidates[variableColumnName[0]] == subclass[subcounter]
+        temp_data = lpvCandidates[temp]
+        grid = sns.jointplot(x=" cflvsc.Avar", y=" cflvsc.ksEMeanMagPawprint", data=temp_data, kind='kde', space=0, color = colours[subcounter])
+        plt.savefig("Verified Crossmatched Stars/ksMag/"+subclass[subcounter]+"ksmag VS amplitude.png")
+        plt.clf()
 
 ###################################################
 # Log Period against Amplitude #
@@ -72,8 +81,8 @@ os.makedirs(('Verified Crossmatched Stars/Avar/'), exist_ok=True)
 
 #print("Filtering file: ", files[counter-1])
 #print(len(crossmatchedData['kFi2']))
-#crossmatchedData = crossmatchedData[crossmatchedData['flagFbias7'] >= 1]
-#crossmatchedData = crossmatchedData[crossmatchedData['flagFbias7'] < 10]
+lpvCandidates = lpvCandidates[lpvCandidates[' cflvsc.FlagFbias7'] >= 1]
+lpvCandidates = lpvCandidates[lpvCandidates[' cflvsc.FlagFbias7'] < 10]
 #crossmatchedData = crossmatchedData[crossmatchedData['wesenheit'] < 20]
 #crossmatchedData = crossmatchedData[crossmatchedData['wesenheit'] > 0]
 #print(len(crossmatchedData['kFi2']))
@@ -82,11 +91,10 @@ for frequency in [' cflvsc.FreqSTR',' cflvsc.FreqPDM',' cflvsc.FreqLSG',' cflvsc
     logName = frequency + ' log10_period'
     lpvCandidates[frequencyName] = np.ones(len(lpvCandidates[frequency]))
     lpvCandidates[frequencyName] = lpvCandidates[frequencyName].div(lpvCandidates[frequency])
-    #per_clipped = likelihood_clipped[likelihood_clipped['period'] > 20]
     lpvCandidates[logName] = np.log10(lpvCandidates[frequencyName])
 
-    #plt.scatter(x=per_clipped["log10_period"], y=per_clipped["wesenheit"], s=70, alpha=0.03)
-    sns.lmplot( x=logName, y=" cflvsc.Avar", data=lpvCandidates, fit_reg=False, hue=variableColumnName[0], legend=False)
+    sns.lmplot( x=logName, y=" cflvsc.Avar", data=lpvCandidates, fit_reg=False, hue=" cflvsc.ksEMeanMagPawprint", legend=False)
+    #sns.lmplot( x=logName, y=" cflvsc.Avar", data=lpvCandidates, fit_reg=False, hue=variableColumnName[0], legend=False)
 
     # Move the legend to an empty part of the plot
     plt.legend(loc='upper right')
