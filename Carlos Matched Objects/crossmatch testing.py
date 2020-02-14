@@ -34,6 +34,78 @@ print(lpvCandidates)
 print(lpvCandidates.columns)
 
 ###################################################
+# Period Matching Literaturee #
+###################################################
+
+def Period_Matching_Literature(input_data):
+
+    for frequency in [' cflvsc.FreqSTR',' cflvsc.FreqPDM',' cflvsc.FreqLSG',' cflvsc.FreqKfi2',' cflvsc.FreqLfl2']:
+        frequencyName = frequency+' period'
+        input_data[frequencyName] = np.ones(len(input_data[frequency]))
+        input_data[frequencyName] = input_data[frequencyName].div(input_data[frequency])
+
+    d = {}
+    # iterating through the elements of list
+    for i in [' cflvsc.FreqSTR',' cflvsc.FreqPDM',' cflvsc.FreqLSG',' cflvsc.FreqKfi2',' cflvsc.FreqLfl2']:
+        d[i] = 0
+
+    for index, row in input_data.iterrows():
+        for frequency in [' cflvsc.FreqSTR',' cflvsc.FreqPDM',' cflvsc.FreqLSG',' cflvsc.FreqKfi2',' cflvsc.FreqLfl2']:
+            frequencyName = frequency+' period'
+            for frequencyMultiple in [0.25,0.33,0.5,1.,2.0,3.0,4.0]:
+                if abs(row[frequencyName]-frequencyMultiple*row[' cflvsc.Period']) < row[' cflvsc.Period']/10:
+                    d[frequency] += 1
+
+            ##########################################
+            ## Check multiples/fractions of periods ##
+            ##########################################
+
+    print("Out of ", len(input_data), ", the different methods found periods accurate to within 10% this number of times: ")
+    print(d)
+    print("*"*50)
+
+literaturePeriods = lpvCandidates[lpvCandidates[' cflvsc.Period'] > 0]
+Period_Matching_Literature(literaturePeriods)
+
+literaturePeriods = crossmatchedData[crossmatchedData[' cflvsc.Period'] > 0]
+Period_Matching_Literature(literaturePeriods)
+
+lpvPossibleObjects = ['  LPV','  M' ,'  RGB','  SR','  PUL','  L','  PER']
+lpvCandidates = crossmatchedData[crossmatchedData[' cflvsc.MainVarType'].isin(lpvPossibleObjects)]
+literaturePeriods = lpvCandidates[lpvCandidates[' cflvsc.Period'] > 0]
+Period_Matching_Literature(literaturePeriods)
+
+for lpvPossibleObjects in ['  LPV','  M' ,'  RGB','  SR','  PUL','  L','  PER']:
+    lpvCandidates = crossmatchedData[crossmatchedData[' cflvsc.MainVarType'] == lpvPossibleObjects]
+    literaturePeriods = lpvCandidates[lpvCandidates[' cflvsc.Period'] > 0]
+    print("Testing Objects of Type:",lpvPossibleObjects)
+    Period_Matching_Literature(literaturePeriods)
+
+#
+# for frequency in [' cflvsc.FreqSTR',' cflvsc.FreqPDM',' cflvsc.FreqLSG',' cflvsc.FreqKfi2',' cflvsc.FreqLfl2']:
+#     frequencyName = frequency+' period'
+#     crossmatchedData[frequencyName] = np.ones(len(crossmatchedData[frequency]))
+#     crossmatchedData[frequencyName] = crossmatchedData[frequencyName].div(crossmatchedData[frequency])
+#
+# crossmatchedData = crossmatchedData[crossmatchedData[' cflvsc.Period'] > 0]
+# crossmatchedData = crossmatchedData[crossmatchedData[' cflvsc.Period'] < 1000]
+#
+# # Create a pair grid instance
+# #data= df[df['year'] == 2007]
+# grid = sns.PairGrid(data= crossmatchedData,
+#                     vars = [' cflvsc.Period', ' cflvsc.FreqSTR period', ' cflvsc.FreqPDM period', ' cflvsc.FreqLSG period', ' cflvsc.FreqKfi2 period',' cflvsc.FreqLfl2 period'], size = 4)
+#
+# # Map the plots to the locations
+# grid = grid.map_upper(plt.scatter, color = 'darkred')
+# grid = grid.map_upper(corr)
+# grid = grid.map_lower(sns.kdeplot, cmap = 'Reds')
+# grid = grid.map_diag(plt.hist, bins = 10, edgecolor =  'k', color = 'darkred')
+# plt.savefig("test correlations.png")
+# plt.show()
+
+exit()
+
+###################################################
 # Ks Mag against Amplitude #
 ###################################################
 
