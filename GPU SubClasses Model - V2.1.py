@@ -61,8 +61,8 @@ kernel_size = 50
 kernel_size2 = 50
 
 # Paths
-first_stage_location = 'Classes'
-final_stage_location = 'MultiLayer'
+first_stage_location = 'superclass'
+final_stage_location = 'subclass'
 base_path = os.getcwd()
 
 from pathlib import Path
@@ -105,13 +105,17 @@ find out how accurate they are together
 #subclasses = ['noise']
 #regular_exp1
 
-def get_filename(directory, N, early, activation='relu', mode):
+def get_filename(directory, N, early, mode, activation='relu'):
     if activation == 'relu':
         directory += '/relu/'
     elif activation == 'sigmoid':
         directory += '/sigmoid/'
     else:
         directory += '/tanh/'
+
+    if not os.path.exists(directory):
+        print('[+] Creating Directory \n\t ->', directory)
+        os.mkdir(directory)
 
     directory += mode + '/'
 
@@ -312,31 +316,36 @@ def get_survey(path):
     elif 'ASASSN' in path:
         return 'ASASSN'
     else:
+        print(path)
         return 'err'
 
 def get_name(path,mode):
-    if mode == "classes":
+    if mode == "superclass":
         for singleclass in classes:
             if singleclass in path:
                 return singleclass
-    if mode == "subclasses":
+    elif mode == "subclass":
         for singleclass in subclasses:
             if singleclass in path:
                 return singleclass
-    return 'err'
+    else:
+        print(path, mode)
+        return 'err'
 
 def get_name_with_survey(path,mode):
-    if mode == "classes":
+    if mode == "superclass":
         for singleclass in classes:
             if singleclass in path:
                 survey = get_survey(path)
                 return survey + '_' + singleclass
-    if mode == "subclasses":
+    elif mode == "subclass":
         for singleclass in subclasses:
             if singleclass in path:
                 survey = get_survey(path)
                 return survey + '_' + singleclass
-    return 'err'
+    else:
+        print(path, mode)
+        return 'err'
 
 def open_vista(path, num):
     df = pd.read_csv(path, comment='#', sep=',', header = None)
@@ -436,7 +445,11 @@ def open_asassn(path, num, n, columns):
     #df = df[np.abs(df.mjd-df.mjd.mean())<=(3*df.mjd.std())]
 
     time = np.array(df[df.columns[columns[0]]].values, dtype=float)
-    magnitude = np.array(df[df.columns[columns[1]]].values, dtype=float)
+    try:
+        magnitude = np.array(df[df.columns[columns[1]]].values, dtype=float)
+    except Exception as e:
+        df[df.columns[columns[1]]] = df[df.columns[columns[1]]].str.replace(r"[><]",'')
+        magnitude = np.array(df[df.columns[columns[1]]].values, dtype=float)
     error = np.array(df[df.columns[columns[2]]].values, dtype=float)
 
     # Not Nan
@@ -480,7 +493,7 @@ def create_matrix(data, N):
 
     return np.array(aux[:N], dtype='float').reshape(-1,1)
 
-def dataset(files, N):
+def dataset(files, N, mode):
     input_1 = []
     input_2 = []
     yClassTrain = []
@@ -489,16 +502,16 @@ def dataset(files, N):
     #for file, num in tqdm(files):
     for file, num in files:
         num = int(num)
-        t, m, e, c, sc, s = None, None, None, get_name(file, 'classes'), get_name(file, 'subclasses'), get_survey(file)
-        if c in classes:
-            if sc in subclasses:
+        t, m, e, c, sc, s = None, None, None, get_name(file, 'superclass'), get_name(file, 'subclass'), get_survey(file)
+        if (c in classes) or (mode == 'subclass'):
+            if (sc in subclasses) or (mode == 'superclass'):
                 if 'VVV' in file:
                     t, m, e = open_vista(file, num)
                 elif 'OGLE' in file:
                     t, m, e = open_ogle(file, num, N, [0,1,2])
                 elif 'ASASSN' in file:
                     t, m, e = open_asassn(file, num, N, [0,2,3])
-                if (c in classes) and (sc in subclasses):
+                if (c in classes) or (sc in subclasses):
                     input_1.append(create_matrix(t, N))
                     input_2.append(create_matrix(m, N))
                     yClassTrain.append(c)
@@ -604,7 +617,7 @@ def serialize_model(name, model):
 def experiment(directory, files, Y, classes, subclasses, N, n_splits):
     # Iterating
     activations = ['tanh']
-    earlyStopping = [True]
+    earlyStopping = [False]
     modes = ['superclass']
     #modes = ['superclass','subclass', 'both']
 
@@ -624,7 +637,7 @@ def experiment(directory, files, Y, classes, subclasses, N, n_splits):
                 #name var = "1) Red" + N
                 #N is the number of points
                 direc, name =  get_filename(directory, N,
-                                            early, activation,mode)
+                                            early, mode, activation)
                 filename_exp = direc + name
                 yPred = np.array([])
                 yPredSubclass = np.array([])
@@ -652,22 +665,22 @@ def experiment(directory, files, Y, classes, subclasses, N, n_splits):
 
                     # Get Database
                     if mode in ['superclass']:
-                        dTrain_1, dTrain_2, yTrain, _, _ = dataset(dTrain, N)
-                        dTest_1, dTest_2, yTest, _, sTest  = dataset(dTest, N)
+                        dTrain_1, dTrain_2, yTrain, _, _ = dataset(dTrain, N, mode)
+                        dTest_1, dTest_2, yTest, _, sTest  = dataset(dTrain, N, mode)
                         yReal = np.append(yReal, yTest)
                         sReal = np.append(sReal, sTest)
                         yTrain = class_to_vector(yTrain, classes)
                         yTest = class_to_vector(yTest, classes)
                     elif mode in ['subclass']:
-                        dTrain_1, dTrain_2, _, ySubclassTrain, _ = dataset(dTrain, N)
-                        dTest_1, dTest_2, _, ySubclassTest, sTest  = dataset(dTest, N)
+                        dTrain_1, dTrain_2, _, ySubclassTrain, _ = dataset(dTrain, N, mode)
+                        dTest_1, dTest_2, _, ySubclassTest, sTest  = dataset(dTrain, N, mode)
                         subclassReal = np.append(subclassReal, ySubclassTest)
                         sReal = np.append(sReal, sTest)
                         ySubclassTrain = class_to_vector(ySubclassTrain, subclasses)
                         ySubclassTest = class_to_vector(ySubclassTest, subclasses)
                     elif mode in ['both']:
-                        dTrain_1, dTrain_2, yTrain, ySubclassTrain, _ = dataset(dTrain, N)
-                        dTest_1, dTest_2, yTest, ySubclassTest, sTest  = dataset(dTest, N)
+                        dTrain_1, dTrain_2, yTrain, ySubclassTrain, _ = dataset(dTrain, N, mode)
+                        dTest_1, dTest_2, yTest, ySubclassTest, sTest  = dataset(dTrain, N, mode)
                         yReal = np.append(yReal, yTest)
                         subclassReal = np.append(subclassReal, ySubclassTest)
                         sReal = np.append(sReal, sTest)
@@ -835,19 +848,19 @@ def experiment(directory, files, Y, classes, subclasses, N, n_splits):
                 y_pred = pd.Series(yPred, name='Predicted')
                 df_confusion = pd.crosstab(y_actu, y_pred, rownames=['Actual'], colnames=['Predicted'], margins=True)
                 output += df_confusion.to_string() + '\n'
-
-                y_actu = pd.Series(subclassReal, name='Actual')
-                y_pred = pd.Series(yPredSubclass, name='Predicted')
-                df_confusion = pd.crosstab(y_actu, y_pred, rownames=['Actual'], colnames=['Predicted'], margins=True)
-                output += df_confusion.to_string() + '\n'
-
-                df_confusion = pd.crosstab(y_actu, y_pred, rownames=['Actual'], colnames=['Predicted'])
-                df_conf_norm = df_confusion / df_confusion.sum(axis=1)
-                output += df_conf_norm.to_string() + '\n'
-
-                s_actu = pd.Series(sReal, name='Survey')
-                df_confusion = pd.crosstab([s_actu,y_actu], y_pred, rownames=['Survey','Actual'], colnames=['Predicted'], margins=True)
-                output += df_confusion.to_string() + '\n'
+                #
+                # y_actu = pd.Series(subclassReal, name='Actual')
+                # y_pred = pd.Series(yPredSubclass, name='Predicted')
+                # df_confusion = pd.crosstab(y_actu, y_pred, rownames=['Actual'], colnames=['Predicted'], margins=True)
+                # output += df_confusion.to_string() + '\n'
+                #
+                # df_confusion = pd.crosstab(y_actu, y_pred, rownames=['Actual'], colnames=['Predicted'])
+                # df_conf_norm = df_confusion / df_confusion.sum(axis=1)
+                # output += df_conf_norm.to_string() + '\n'
+                #
+                # s_actu = pd.Series(sReal, name='Survey')
+                # df_confusion = pd.crosstab([s_actu,y_actu], y_pred, rownames=['Survey','Actual'], colnames=['Predicted'], margins=True)
+                # output += df_confusion.to_string() + '\n'
 
                 text_file = open("ResultsMultilayer/Model Accuracy.txt", "a")
                 text_file.write(output)
@@ -857,12 +870,16 @@ def experiment(directory, files, Y, classes, subclasses, N, n_splits):
                 print("Comparison: ",comparison)
                 print('*'*30)
 
+                comparison = sklearn.metrics.accuracy_score(subclassReal,yPredSubclass)
+                print("Comparison: ",comparison)
+                print('*'*30)
+
 
 print('[+] Getting Filenames')
 files = np.array(get_class(extraRandom, permutation))
 YSubClass = []
 for file, num in files:
-    YSubClass.append(get_name_with_survey(file, "subclasses"))
+    YSubClass.append(get_name_with_survey(file, "superclass"))
 YSubClass = np.array(YSubClass)
 
 NUMBER_OF_POINTS = 500
