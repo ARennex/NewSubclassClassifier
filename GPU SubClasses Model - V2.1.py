@@ -25,10 +25,15 @@ from keras.utils import plot_model
 ap = argparse.ArgumentParser()
 ap.add_argument("-g", "--gpus", type=int, default=1,
     help="# of GPUs to use for training")
+ap.add_argument("-m", "--mode", type=str, default='both',
+    help="which layer to train - one or both")
 args = vars(ap.parse_args())
 
 # grab the number of GPUs and store it in a conveience variable
 num_gpu = args["gpus"]
+
+# grab the number of GPUs and store it in a conveience variable
+mode = args["mode"]
 
 ## Settings
 # Files Setting
@@ -127,7 +132,7 @@ def get_filename(directory, N, early, mode, activation='relu'):
     directory += '/'
     return directory, name
 
-def get_class(extraRandom = False, permutation=False):
+def get_class(mode, extraRandom = False, permutation=False):
     files1 = np.array(list(glob.iglob(class_loc1, recursive=True)))
     files2 = np.array(list(glob.iglob(class_loc2, recursive=True)))
     files3 = np.array(list(glob.iglob(class_loc3, recursive=True)))
@@ -135,6 +140,11 @@ def get_class(extraRandom = False, permutation=False):
     #Then puts them in a list
 
     print('[!] Files in Memory')
+
+    if mode == 'superclass':
+        category = classes
+    else:
+        category = subclasses
 
     # Permutations
     if permutation:
@@ -150,7 +160,7 @@ def get_class(extraRandom = False, permutation=False):
     ATLAS = {}
     vvv = {}
     asassn = {}
-    for singleclass in classes:
+    for singleclass in category:
         aux_dic[singleclass] = []
         ogle[singleclass] = 0
         vvv[singleclass] = 0
@@ -164,7 +174,7 @@ def get_class(extraRandom = False, permutation=False):
         foundVista = False
         foundAsassn = False
 
-        for singleclass in classes:
+        for singleclass in category:
 
             # Ogle
             # Limit is max stars of one class taken from survey (default 8000)
@@ -614,11 +624,11 @@ def serialize_model(name, model):
     # Serialize weights to HDF5
     model.save_weights(name + ".h5")
 
-def experiment(directory, files, Y, classes, subclasses, N, n_splits):
+def experiment(directory, files, Y, classes, subclasses, N, n_splits, input_mode):
     # Iterating
     activations = ['tanh']
     earlyStopping = [False]
-    modes = ['superclass']
+    modes = [input_mode]
     #modes = ['superclass','subclass', 'both']
 
     #Iterate over the activation functions, but only tanh is used where
@@ -745,6 +755,7 @@ def experiment(directory, files, Y, classes, subclasses, N, n_splits):
 
                     elif mode in ['subclass']:
 
+                        modelDirectory = direc + 'model/'
                         """Load Model Here"""
                         json_file = open(modelDirectory + str(modelNum)+'.json', 'r')
                         loaded_model_json = json_file.read()
@@ -876,10 +887,10 @@ def experiment(directory, files, Y, classes, subclasses, N, n_splits):
 
 
 print('[+] Getting Filenames')
-files = np.array(get_class(extraRandom, permutation))
+files = np.array(get_class(mode, extraRandom, permutation))
 YSubClass = []
 for file, num in files:
-    YSubClass.append(get_name_with_survey(file, "superclass"))
+    YSubClass.append(get_name_with_survey(file, mode))
 YSubClass = np.array(YSubClass)
 
 NUMBER_OF_POINTS = 500
@@ -892,5 +903,5 @@ while NUMBER_OF_POINTS <= MAX_NUMBER_OF_POINTS:
         print('[+] Creating Directory \n\t ->', directory)
         os.mkdir(directory)
 
-    experiment(directory, files, YSubClass, classes, subclasses, NUMBER_OF_POINTS, n_splits)
+    experiment(directory, files, YSubClass, classes, subclasses, NUMBER_OF_POINTS, n_splits, mode)
     NUMBER_OF_POINTS += step
