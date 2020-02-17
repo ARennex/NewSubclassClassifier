@@ -4,9 +4,89 @@ import matplotlib.pyplot as plt
 import glob
 import os
 import seaborn as sns
+import matplotlib.gridspec as gridspec
+import matplotlib.patches as mpatches
 
 magAplPlot = False
 OSARGCheck = True
+
+sns.set_style('darkgrid')
+def jointplot_w_hue(data, x, y, hue=None, colormap = None,
+                    figsize = None, fig = None, scatter_kws=None):
+    #defaults
+    if colormap is None:
+        colormap = sns.color_palette() #['blue','orange']
+    if figsize is None:
+        figsize = (5,5)
+    if fig is None:
+        fig  = plt.figure(figsize = figsize)
+    if scatter_kws is None:
+        scatter_kws = dict(alpha=0.4, lw=1)
+
+    # derived variables
+    if hue is None:
+        return "use normal sns.jointplot"
+    hue_groups = data[hue].unique()
+
+    subdata = dict()
+    colors = dict()
+
+    active_colormap = colormap[0: len(hue_groups)]
+    legend_mapping = []
+    for hue_grp, color in zip(hue_groups, active_colormap):
+        legend_entry = mpatches.Patch(color=color, label=hue_grp)
+        legend_mapping.append(legend_entry)
+
+        subdata[hue_grp] = data[data[hue]==hue_grp]
+        colors[hue_grp] = color
+
+    # canvas setup
+    grid = gridspec.GridSpec(2, 2,
+                           width_ratios=[4, 1],
+                           height_ratios=[1, 4],
+                           hspace = 0, wspace = 0
+                           )
+    ax_main    = plt.subplot(grid[1,0])
+    ax_xhist   = plt.subplot(grid[0,0], sharex=ax_main)
+    ax_yhist   = plt.subplot(grid[1,1])#, sharey=ax_main)
+
+    ## plotting
+
+    # histplot x-axis
+    for hue_grp in hue_groups:
+        sns.distplot(subdata[hue_grp][x], color = colors[hue_grp]
+                     , ax = ax_xhist)
+
+    # histplot y-axis
+    for hue_grp in hue_groups:
+        sns.distplot(subdata[hue_grp][y], color = colors[hue_grp]
+                     , ax = ax_yhist, vertical=True)
+
+    # main scatterplot
+    # note: must be after the histplots else ax_yhist messes up
+    for hue_grp in hue_groups:
+        sns.regplot(data = subdata[hue_grp], fit_reg=False,
+                    x = x, y = y, ax = ax_main, color = colors[hue_grp]
+                    , scatter_kws=scatter_kws
+                   )
+
+    # despine
+    for myax in [ax_yhist, ax_xhist]:
+        sns.despine(ax = myax, bottom=False, top=True, left = False, right = True
+                    , trim = False)
+        plt.setp(myax.get_xticklabels(), visible=False)
+        plt.setp(myax.get_yticklabels(), visible=False)
+
+
+    # topright
+    ax_legend   = plt.subplot(grid[0,1])#, sharey=ax_main)
+    plt.setp(ax_legend.get_xticklabels(), visible=False)
+    plt.setp(ax_legend.get_yticklabels(), visible=False)
+
+    ax_legend.legend(handles=legend_mapping)
+    plt.savefig("Verified Crossmatched Stars/period" + y + "comparison.png")
+    plt.close()
+    return dict(fig = fig, gridspec = grid)
 
 def corr(x, y, **kwargs):
 
@@ -33,6 +113,43 @@ lpvCandidates = crossmatchedData[crossmatchedData[' cflvsc.OtherVarType'].str.co
 print(lpvCandidates)
 print(lpvCandidates.columns)
 
+literaturePeriods = lpvCandidates[lpvCandidates[' cflvsc.Period'] > 0]
+
+lpvCandidates = lpvCandidates[lpvCandidates[' cflvsc.Ngoodmeasures'] > 50]
+
+literaturePeriods['mod good obs'] = pd.qcut(lpvCandidates[' cflvsc.Ngoodmeasures'],
+                              q=[0, .2, .4, .6, .8, 1],
+                              labels=['20%', '40%', '60%', '80%', '100%'])
+
+results, bin_edges = pd.qcut(lpvCandidates[' cflvsc.Ngoodmeasures'],
+                              q=[0, .2, .4, .6, .8, 1],
+                              labels=['20%', '40%', '60%', '80%', '100%'],
+                              retbins = True)
+
+results_table = pd.DataFrame(zip(bin_edges, ['20%', '40%', '60%', '80%', '100%']),
+                            columns=['Threshold', 'Tier'])
+
+print(results_table)
+
+#literaturePeriods['mod good obs'] = lpvCandidates[' cflvsc.Ngoodmeasures'] // 10
+print(literaturePeriods['mod good obs'].unique())
+print(literaturePeriods['mod good obs'].value_counts())
+
+for frequency in [' cflvsc.FreqSTR',' cflvsc.FreqPDM',' cflvsc.FreqLSG',' cflvsc.FreqKfi2',' cflvsc.FreqLfl2']:
+    frequencyName = frequency+' period'
+    literaturePeriods[frequencyName] = np.ones(len(literaturePeriods[frequency]))
+    literaturePeriods[frequencyName] = literaturePeriods[frequencyName].div(literaturePeriods[frequency])
+
+    logName = frequency + ' log10_period'
+    literaturePeriods[logName] = np.log10(literaturePeriods[frequencyName])
+    literaturePeriods['crossmatch_1og10_period'] = np.log10(literaturePeriods[' cflvsc.Period'])
+
+    jointplot_w_hue(data=literaturePeriods, x = 'crossmatch_1og10_period', y = logName, hue = 'mod good obs')['fig']
+    #sns.jointplot(x='crossmatch_1og10_period', y=logName, data=literaturePeriods, kind='scatter',color=literaturePeriods['mod good obs'], space=0)
+    #plt.savefig("Verified Crossmatched Stars/period" + frequency + "comparison.png")
+
+#exit()
+
 ###################################################
 # Period Matching Literaturee #
 ###################################################
@@ -53,7 +170,7 @@ def Period_Matching_Literature(input_data):
         for frequency in [' cflvsc.FreqSTR',' cflvsc.FreqPDM',' cflvsc.FreqLSG',' cflvsc.FreqKfi2',' cflvsc.FreqLfl2']:
             frequencyName = frequency+' period'
             for frequencyMultiple in [0.25,0.33,0.5,1.,2.0,3.0,4.0]:
-                if abs(row[frequencyName]-frequencyMultiple*row[' cflvsc.Period']) < row[' cflvsc.Period']/10:
+                if abs(row[frequencyName]-(frequencyMultiple*row[' cflvsc.Period'])) < row[' cflvsc.Period']/10:
                     d[frequency] += 1
 
             ##########################################
@@ -81,12 +198,9 @@ for lpvPossibleObjects in ['  LPV','  M' ,'  RGB','  SR','  PUL','  L','  PER']:
     print("Testing Objects of Type:",lpvPossibleObjects)
     Period_Matching_Literature(literaturePeriods)
 
-#
-# for frequency in [' cflvsc.FreqSTR',' cflvsc.FreqPDM',' cflvsc.FreqLSG',' cflvsc.FreqKfi2',' cflvsc.FreqLfl2']:
-#     frequencyName = frequency+' period'
-#     crossmatchedData[frequencyName] = np.ones(len(crossmatchedData[frequency]))
-#     crossmatchedData[frequencyName] = crossmatchedData[frequencyName].div(crossmatchedData[frequency])
-#
+
+#plt.show()
+
 # crossmatchedData = crossmatchedData[crossmatchedData[' cflvsc.Period'] > 0]
 # crossmatchedData = crossmatchedData[crossmatchedData[' cflvsc.Period'] < 1000]
 #
