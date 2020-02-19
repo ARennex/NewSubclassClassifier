@@ -642,13 +642,6 @@ def experiment(directory, files, Y, classes, subclasses, N, n_splits, input_mode
                       '\n\t\t\t [!] Activation', activation,
                       '\n\t\t\t [!] Mode', mode)
 
-                #Retreives directory name which includes the activation func,
-                #Creates one chosen activation func if it doesn't exist
-                #name var = "1) Red" + N
-                #N is the number of points
-                direc, name =  get_filename(directory, N,
-                                            early, mode, activation)
-                filename_exp = direc + name
                 yPred = np.array([])
                 yPredSubclass = np.array([])
                 yReal = np.array([])
@@ -703,6 +696,12 @@ def experiment(directory, files, Y, classes, subclasses, N, n_splits, input_mode
                     ## Tensorboard #
                     ################
 
+                    #Retreives directory name which includes the activation func,
+                    #Creates one chosen activation func if it doesn't exist
+                    #name var = "1) Red" + N
+                    #N is the number of points
+                    direc, name =  get_filename(directory, N,
+                                                early, mode, activation)
                     tensorboard = TensorBoard(log_dir= direc + 'logs',
                                               write_graph=True, write_images=True)
 
@@ -745,16 +744,31 @@ def experiment(directory, files, Y, classes, subclasses, N, n_splits, input_mode
                         ##  Serialize  ##
                         #################
 
+                        #Retreives directory name which includes the activation func,
+                        #Creates one chosen activation func if it doesn't exist
+                        #name var = "1) Red" + N
+                        #N is the number of points
+                        direc, name =  get_filename(directory, N,
+                                                    early, 'superclass', activation)
+                        filename_exp = direc + name
+
                         modelDirectory = direc + 'model/'
                         if not os.path.exists(modelDirectory):
                             print('[+] Creating Directory \n\t ->', modelDirectory)
                             os.mkdir(modelDirectory)
 
                         serialize_model(modelDirectory + str(modelNum), model)
-                        modelNum += 1
+
+                        if mode != 'both':
+                            modelNum += 1
+                            #Don't want it incrementing twice!
 
                     elif mode in ['subclass']:
 
+                        modelDirectory = direc + 'model/'
+                        modelDirectory = './Resultssubclass/tanh/superclass/model/'
+                        direc, name =  get_filename(directory, N,
+                                                    early, 'superclass', activation)
                         modelDirectory = direc + 'model/'
                         """Load Model Here"""
                         json_file = open(modelDirectory + str(modelNum)+'.json', 'r')
@@ -768,15 +782,14 @@ def experiment(directory, files, Y, classes, subclasses, N, n_splits, input_mode
                         # evaluate loaded model on test data
                         model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 
-                        modelNum += 1
-
 
                     if mode in ['subclass','both']:
                         #######
                         #rearragne label data - for the second model
                         #######
-                        training_input = np.reshape(np.array(model.predict([dTrain_1, dTrain_2])), (-1,4,1)) #4 because 4 superclasses
-                        testing_input = np.reshape(np.array(model.predict([dTest_1, dTest_2])), (-1,4,1))
+                        number_of_superclasses = len(classes)
+                        training_input = np.reshape(np.array(model.predict([dTrain_1, dTrain_2])), (-1,number_of_superclasses,1)) #4 because 4 superclasses - originally 4, but now scales to all classes
+                        testing_input = np.reshape(np.array(model.predict([dTest_1, dTest_2])), (-1,number_of_superclasses,1))
 
 
                     if mode in ['superclass']:
@@ -829,6 +842,14 @@ def experiment(directory, files, Y, classes, subclasses, N, n_splits, input_mode
                         ##  Serialize Second Model ##
                         #############################
 
+                        #Retreives directory name which includes the activation func,
+                        #Creates one chosen activation func if it doesn't exist
+                        #name var = "1) Red" + N
+                        #N is the number of points
+                        direc, name =  get_filename(directory, N,
+                                                    early, 'subclass', activation)
+                        filename_exp = direc + name
+
                         modelDirectory = direc + 'model/'
                         if not os.path.exists(modelDirectory):
                             print('[+] Creating Directory \n\t ->', modelDirectory)
@@ -840,31 +861,73 @@ def experiment(directory, files, Y, classes, subclasses, N, n_splits, input_mode
                         del dTrain, dTest, ySubclassTrain, ySubclassTest, model
                         # break
 
-                yPred = np.array([classes[int(i)]  for i in yPred])
-                yPredSubclass = np.array([subclasses[int(i)]  for i in yPredSubclass])
-
-                # Save Matrix
-                print('\n \t\t\t [+] Saving Results in', filename_exp)
-                np.save(filename_exp, [yReal, yPred, subclassReal, yPredSubclass, sReal])
-                print('*'*30)
-                # except Exception as e:
-                #     print('\t\t\t [!] Fatal Error:\n\t\t', str(e))
-
                 ############################
                 ##  Save Confusion Matrix ##
                 ############################
 
                 output = 'Confusion Matrix For Each Model Iteration:' + '\n'
-                y_actu = pd.Series(yReal, name='Actual')
-                y_pred = pd.Series(yPred, name='Predicted')
-                df_confusion = pd.crosstab(y_actu, y_pred, rownames=['Actual'], colnames=['Predicted'], margins=True)
-                output += df_confusion.to_string() + '\n'
-                #
-                # y_actu = pd.Series(subclassReal, name='Actual')
-                # y_pred = pd.Series(yPredSubclass, name='Predicted')
-                # df_confusion = pd.crosstab(y_actu, y_pred, rownames=['Actual'], colnames=['Predicted'], margins=True)
-                # output += df_confusion.to_string() + '\n'
-                #
+
+                if mode in ['superclass']:
+                    yPred = np.array([classes[int(i)]  for i in yPred])
+                    # Save Matrix
+                    print('\n \t\t\t [+] Saving Results in', filename_exp)
+                    np.save(filename_exp, [yReal, yPred, sReal])
+                    print('*'*30)
+                    # except Exception as e:
+                    #     print('\t\t\t [!] Fatal Error:\n\t\t', str(e))
+
+                    y_actu = pd.Series(yReal, name='Actual')
+                    y_pred = pd.Series(yPred, name='Predicted')
+                    df_confusion = pd.crosstab(y_actu, y_pred, rownames=['Actual'], colnames=['Predicted'], margins=True)
+                    output += df_confusion.to_string() + '\n'
+
+                    comparison = sklearn.metrics.accuracy_score(yReal,yPred)
+                    print("Comparison: ",comparison)
+                    print('*'*30)
+                elif mode in ['subclass']:
+                    yPredSubclass = np.array([subclasses[int(i)]  for i in yPredSubclass])
+                    # Save Matrix
+                    print('\n \t\t\t [+] Saving Results in', filename_exp)
+                    np.save(filename_exp, [subclassReal, yPredSubclass, sReal])
+                    print('*'*30)
+                    # except Exception as e:
+                    #     print('\t\t\t [!] Fatal Error:\n\t\t', str(e))
+
+                    y_actu = pd.Series(subclassReal, name='Actual')
+                    y_pred = pd.Series(yPredSubclass, name='Predicted')
+                    df_confusion = pd.crosstab(y_actu, y_pred, rownames=['Actual'], colnames=['Predicted'], margins=True)
+                    output += df_confusion.to_string() + '\n'
+
+                    comparison = sklearn.metrics.accuracy_score(subclassReal,yPredSubclass)
+                    print("Comparison: ",comparison)
+                    print('*'*30)
+                elif mode in ['both']:
+                    yPred = np.array([classes[int(i)]  for i in yPred])
+                    yPredSubclass = np.array([subclasses[int(i)]  for i in yPredSubclass])
+                    # Save Matrix
+                    print('\n \t\t\t [+] Saving Results in', filename_exp)
+                    np.save(filename_exp, [yReal, yPred, subclassReal, yPredSubclass, sReal])
+                    print('*'*30)
+                    # except Exception as e:
+                    #     print('\t\t\t [!] Fatal Error:\n\t\t', str(e))
+
+                    y_actu = pd.Series(yReal, name='Actual')
+                    y_pred = pd.Series(yPred, name='Predicted')
+                    df_confusion = pd.crosstab(y_actu, y_pred, rownames=['Actual'], colnames=['Predicted'], margins=True)
+                    output += df_confusion.to_string() + '\n'
+                    y_actu = pd.Series(subclassReal, name='Actual')
+                    y_pred = pd.Series(yPredSubclass, name='Predicted')
+                    df_confusion = pd.crosstab(y_actu, y_pred, rownames=['Actual'], colnames=['Predicted'], margins=True)
+                    output += df_confusion.to_string() + '\n'
+
+                    comparison = sklearn.metrics.accuracy_score(yReal,yPred)
+                    print("Comparison: ",comparison)
+                    print('*'*30)
+
+                    comparison = sklearn.metrics.accuracy_score(subclassReal,yPredSubclass)
+                    print("Comparison: ",comparison)
+                    print('*'*30)
+
                 # df_confusion = pd.crosstab(y_actu, y_pred, rownames=['Actual'], colnames=['Predicted'])
                 # df_conf_norm = df_confusion / df_confusion.sum(axis=1)
                 # output += df_conf_norm.to_string() + '\n'
@@ -873,17 +936,12 @@ def experiment(directory, files, Y, classes, subclasses, N, n_splits, input_mode
                 # df_confusion = pd.crosstab([s_actu,y_actu], y_pred, rownames=['Survey','Actual'], colnames=['Predicted'], margins=True)
                 # output += df_confusion.to_string() + '\n'
 
-                text_file = open("ResultsMultilayer/Model Accuracy.txt", "a")
+                direc, name =  get_filename(directory, N,
+                                            early, mode, activation)
+
+                text_file = open(direc + "/Model Accuracy.txt", "a")
                 text_file.write(output)
                 text_file.close()
-
-                comparison = sklearn.metrics.accuracy_score(yReal,yPred)
-                print("Comparison: ",comparison)
-                print('*'*30)
-
-                comparison = sklearn.metrics.accuracy_score(subclassReal,yPredSubclass)
-                print("Comparison: ",comparison)
-                print('*'*30)
 
 
 print('[+] Getting Filenames')
