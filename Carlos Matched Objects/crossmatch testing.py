@@ -17,7 +17,7 @@ def jointplot_w_hue(data, x, y, hue=None, colormap = None,
     if colormap is None:
         colormap = sns.color_palette() #['blue','orange']
     if figsize is None:
-        figsize = (5,5)
+        figsize = (10,10)
     if fig is None:
         fig  = plt.figure(figsize = figsize)
     if scatter_kws is None:
@@ -84,7 +84,7 @@ def jointplot_w_hue(data, x, y, hue=None, colormap = None,
     plt.setp(ax_legend.get_yticklabels(), visible=False)
 
     ax_legend.legend(handles=legend_mapping)
-    plt.savefig("Verified Crossmatched Stars/period" + y + "comparison.png")
+    plt.savefig("Verified Crossmatched Stars/"+ x + y + "comparison.png")
     plt.close()
     return dict(fig = fig, gridspec = grid)
 
@@ -115,6 +115,22 @@ print(lpvCandidates.columns)
 
 literaturePeriods = lpvCandidates[lpvCandidates[' cflvsc.Period'] > 0]
 
+
+literaturePeriods['mod good obs'] = pd.qcut(lpvCandidates[' cflvsc.Ngoodmeasures'],
+                              q=[0, .2, .4, .6, .8, 1],
+                              labels=['20%', '40%', '60%', '80%', '100%'])
+results, bin_edges = pd.qcut(lpvCandidates[' cflvsc.Ngoodmeasures'],
+                              q=[0, .2, .4, .6, .8, 1],
+                              labels=['20%', '40%', '60%', '80%', '100%'],
+                              retbins = True)
+results_table = pd.DataFrame(zip(bin_edges, ['20%', '40%', '60%', '80%', '100%']),
+                            columns=['Threshold', 'Tier'])
+print(results_table)
+print(literaturePeriods['mod good obs'].unique())
+print(literaturePeriods['mod good obs'].value_counts())
+for otherColumn in [' cflvsc.ksEMeanMagPawprint']:
+    jointplot_w_hue(data=literaturePeriods, x = " cflvsc.Avar", y = otherColumn, hue = 'mod good obs')['fig']
+
 lpvCandidates = lpvCandidates[lpvCandidates[' cflvsc.Ngoodmeasures'] > 50]
 
 literaturePeriods['mod good obs'] = pd.qcut(lpvCandidates[' cflvsc.Ngoodmeasures'],
@@ -134,6 +150,9 @@ print(results_table)
 #literaturePeriods['mod good obs'] = lpvCandidates[' cflvsc.Ngoodmeasures'] // 10
 print(literaturePeriods['mod good obs'].unique())
 print(literaturePeriods['mod good obs'].value_counts())
+
+for otherColumn in [' cflvsc.ksEMeanMagPawprint']:
+    jointplot_w_hue(data=literaturePeriods, x = " cflvsc.Avar", y = otherColumn, hue = 'mod good obs')['fig']
 
 for frequency in [' cflvsc.FreqSTR',' cflvsc.FreqPDM',' cflvsc.FreqLSG',' cflvsc.FreqKfi2',' cflvsc.FreqLfl2']:
     frequencyName = frequency+' period'
