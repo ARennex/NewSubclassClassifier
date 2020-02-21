@@ -1,0 +1,4 @@
+This code is examining light curves of high amplitude, saturated (ksApperMag3 < 11) objects
+Random samples are plotted.
+
+A interesting object was spotted. This object had mean magnitude greater than 14, because it's ksAperMag3 was undefined. I examined it's RA and Dec to see if it was multiple objects nearby to each other which could have been the cause. Two clusters in RA and Dec were noticed.
