@@ -1,0 +1,3 @@
+The verified crossmatch stars are coloured by number of good observations
+
+See crossmatch testing.py and run it to see what it does. Objects grouped into 5 tiers of threshold (>50, >76, >98 etc etc)
