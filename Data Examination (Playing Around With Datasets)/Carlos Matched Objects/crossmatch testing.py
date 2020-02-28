@@ -11,7 +11,7 @@ magAplPlot = False
 OSARGCheck = True
 
 sns.set_style('darkgrid')
-def jointplot_w_hue(data, x, y, hue=None, colormap = None,
+def jointplot_w_hue(data, x, y, filename, hue=None, colormap = None,
                     figsize = None, fig = None, scatter_kws=None):
     #defaults
     if colormap is None:
@@ -84,7 +84,9 @@ def jointplot_w_hue(data, x, y, hue=None, colormap = None,
     plt.setp(ax_legend.get_yticklabels(), visible=False)
 
     ax_legend.legend(handles=legend_mapping)
-    plt.savefig("Verified Crossmatched Stars/"+ x + y + "comparison.png")
+    saveName = "Verified Crossmatched Stars/"+ x + y + filename + ".png"
+    plt.savefig(saveName)
+    #plt.savefig("Verified Crossmatched Stars/"+ x + y + "FrequencyHeight.png")
     plt.close()
     return dict(fig = fig, gridspec = grid)
 
@@ -115,6 +117,80 @@ print(lpvCandidates.columns)
 
 literaturePeriods = lpvCandidates[lpvCandidates[' cflvsc.Period'] > 0]
 
+#####################################################################
+# Check period vs literature period based on frequency spike height #
+#####################################################################
+for frequency in [' cflvsc.FreqSTR',' cflvsc.FreqPDM',' cflvsc.FreqLSG',' cflvsc.FreqKfi2',' cflvsc.FreqLfl2']:
+    frequencyName = frequency+' period'
+    literaturePeriods[frequencyName] = np.ones(len(literaturePeriods[frequency]))
+    literaturePeriods[frequencyName] = literaturePeriods[frequencyName].div(literaturePeriods[frequency])
+
+    logName = frequency + ' log10_period'
+    literaturePeriods[logName] = np.log10(literaturePeriods[frequencyName])
+    literaturePeriods['crossmatch_1og10_period'] = np.log10(literaturePeriods[' cflvsc.Period'])
+
+    columnName = frequency.replace("Freq",'Height')
+
+    # literaturePeriods['mod heights'] = pd.qcut(lpvCandidates[columnName],
+    #                               q=[0, .2, .4, .6, .8, 1],
+    #                               labels=['20%', '40%', '60%', '80%', '100%'])
+    results, bin_edges = pd.qcut(lpvCandidates[columnName],
+                                  q=[0, .2, .4, .6, .8, 1],
+                                  labels=['20%', '40%', '60%', '80%', '100%'],
+                                  retbins = True)
+
+    literaturePeriods['mod heights'] = pd.qcut(lpvCandidates[columnName],
+                                  q=[0, .2, .4, .6, .8, 1],
+                                  labels=bin_edges[:-1]) #-2 in order to drop the last value only. the bin labels are the min point
+    results_table = pd.DataFrame(zip(bin_edges, ['20%', '40%', '60%', '80%', '100%']),
+                                columns=['Threshold', 'Tier'])
+    print('*'*50)
+    print(frequency)
+    print('*'*50)
+    print(results_table)
+    print(literaturePeriods['mod heights'].unique())
+    print(literaturePeriods['mod heights'].value_counts())
+
+    jointplot_w_hue(data=literaturePeriods, x = 'crossmatch_1og10_period', y = logName, filename='FrequencyHeight', hue = 'mod heights')['fig']
+
+##############################################################################
+# Check period vs literature period based on frequency spike relative height #
+##############################################################################
+for frequency in [' cflvsc.FreqSTR',' cflvsc.FreqPDM',' cflvsc.FreqLSG',' cflvsc.FreqKfi2',' cflvsc.FreqLfl2']:
+    frequencyName = frequency+' period'
+    literaturePeriods[frequencyName] = np.ones(len(literaturePeriods[frequency]))
+    literaturePeriods[frequencyName] = literaturePeriods[frequencyName].div(literaturePeriods[frequency])
+
+    logName = frequency + ' log10_period'
+    literaturePeriods[logName] = np.log10(literaturePeriods[frequencyName])
+    literaturePeriods['crossmatch_1og10_period'] = np.log10(literaturePeriods[' cflvsc.Period'])
+
+    columnName = frequency.replace("Freq",'HeightKfi2to')
+
+    # literaturePeriods['mod heights'] = pd.qcut(lpvCandidates[columnName],
+    #                               q=[0, .2, .4, .6, .8, 1],
+    #                               labels=['20%', '40%', '60%', '80%', '100%'])
+    results, bin_edges = pd.qcut(lpvCandidates[columnName],
+                                  q=[0, .2, .4, .6, .8, 1],
+                                  labels=['20%', '40%', '60%', '80%', '100%'],
+                                  retbins = True)
+
+    literaturePeriods['mod heights'] = pd.qcut(lpvCandidates[columnName],
+                                  q=[0, .2, .4, .6, .8, 1],
+                                  labels=bin_edges[:-1]) #-2 in order to drop the last value only. the bin labels are the min point
+    results_table = pd.DataFrame(zip(bin_edges, ['20%', '40%', '60%', '80%', '100%']),
+                                columns=['Threshold', 'Tier'])
+    print('*'*50)
+    print(frequency)
+    print('*'*50)
+    print(results_table)
+    print(literaturePeriods['mod heights'].unique())
+    print(literaturePeriods['mod heights'].value_counts())
+
+    jointplot_w_hue(data=literaturePeriods, x = 'crossmatch_1og10_period', y = logName, filename='RelativeFrequencyHeight', hue = 'mod heights')['fig']
+
+
+exit()
 
 literaturePeriods['mod good obs'] = pd.qcut(lpvCandidates[' cflvsc.Ngoodmeasures'],
                               q=[0, .2, .4, .6, .8, 1],
