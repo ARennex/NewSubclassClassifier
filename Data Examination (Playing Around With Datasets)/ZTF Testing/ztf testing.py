@@ -102,10 +102,12 @@ def corr(x, y, **kwargs):
     ax = plt.gca()
     ax.annotate(label, xy = (0.2, 0.95), size = 20, xycoords = ax.transAxes)
 
-files = ['alt values(1).csv','resultsZTFCrossmatches.csv']
-
+#files = ['alt values(1).csv','resultsZTFCrossmatches.csv']
+files = ['alt values.csv','newVVVZTFCrossmatches.csv']
+print("test")
 ztfFiles = pd.read_csv(files[0],sep=',')
-ztfCrossmatch = pd.read_csv(files[1],skiprows=14,sep=',')
+ztfCrossmatch = pd.read_csv(files[1],sep=',')
+#ztfCrossmatch = pd.read_csv(files[1],skiprows=14,sep=',')
 
 #print(ztfFiles)
 #print(ztfCrossmatch)
@@ -123,5 +125,5 @@ new_df.to_csv('ztfVVVMatched.csv',index=False)
 print(new_df)
 
 just_data = new_df[['sourceID','objectId']]
-just_data.to_csv('ztfVVVOnlyRelevantColumns',index=False)
+just_data.to_csv('ztfVVVOnlyRelevantColumns.csv',index=False)
 print(just_data)
