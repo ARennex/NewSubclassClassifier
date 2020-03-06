@@ -38,6 +38,9 @@ X_test = X[test_inds][:,:nf]
 y_test = y[test_inds]
 dX_test = dX[test_inds][:,:nf]
 
+#import faulthandler
+#faulthandler.enable()
+
 print('Break Test 1')
 
 n_trees = 10
