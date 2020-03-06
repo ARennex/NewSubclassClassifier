@@ -167,37 +167,39 @@ for frequency in [' cflvsc.FreqSTR',' cflvsc.FreqPDM',' cflvsc.FreqLSG',' cflvsc
 import operator
 
 def row_checker(row, freqName, heightName, lowerLimit, upperLimit):
-    validFreq = freqName.replace(" cflvsc.", "valid")
-    validHeight = heightName.replace(" cflvsc.", "valid")
     if (row[heightName] > lowerLimit) and ((row[heightName] < upperLimit)):
-        neat_data[validFreq] = row[freqName]
-        neat_data[validHeight] = row[heightName]
+        return True
+        #return row[freqName], row[heightName]
     else:
-        neat_data[validFreq] = -9.99E8
-        neat_data[validHeight] = -9.99E8
+        return False
+        #return -9.99E8, -9.99E8
 
 ids = [' cflvsc.FreqSTR',' cflvsc.FreqPDM',' cflvsc.FreqLSG',' cflvsc.FreqKfi2',' cflvsc.FreqLfl2']
 neat_data = pd.DataFrame(columns = ['validFreqSTR','validFreqPDM','validFreqLSG','validFreqKfi2','validFreqLfl2'])
 for index,row in compilationData.iterrows():
     for singleID in ids:
         heightName = singleID.replace("Freq",'Height')
-        validName = singleID.replace(" cflvsc.", "valid")
+        validFreq = singleID.replace(" cflvsc.", "valid")
+        #validHeight = heightName.replace(" cflvsc.", "valid")
 
         if singleID == ' cflvsc.FreqSTR':
-            row_checker(row,singleID,heightName,0.05,10.0)
+            valid = row_checker(row,singleID,heightName,0.05,10.0)
         elif singleID == ' cflvsc.FreqPDM':
-            row_checker(row,singleID,heightName,0.0,0.5)
+            valid = row_checker(row,singleID,heightName,0.0,0.5)
         elif singleID == ' cflvsc.FreqLSG':
-            row_checker(row,singleID,heightName,4.5,1000.0)
+            valid = row_checker(row,singleID,heightName,4.5,1000.0)
         elif singleID == ' cflvsc.FreqKfi2':
-            row_checker(row,singleID,heightName,0.75,10.0)
+            valid = row_checker(row,singleID,heightName,0.75,10.0)
         elif singleID == ' cflvsc.FreqLfl2':
-            row_checker(row,singleID,heightName,0.75,10.0)
+            valid = row_checker(row,singleID,heightName,0.75,10.0)
 
+        #########################################
+        # This is where the new column is added #
+        #########################################
+        compilationData.loc[index,validFreq] = valid
 
-        heightName = singleID.replace("Freq",'Height')
-
-
+print(compilationData)
+exit()
 ###################################
 # This bit here needs repurposing -> above ^ #
 # It's not useful to simply find the highest peak - they're not the same scale #
