@@ -3,7 +3,9 @@ from .. import PRF
 from sklearn.ensemble import RandomForestClassifier
 import numpy
 
-folder = 'D:/NewSubclassClassifier/NewSubclassClassifier/Useful Code/PRF/PRF/examples/data'
+import os
+folder = os.getcwd() + "/PRF/examples/data"
+
 X = numpy.load(folder+'/bootstrap_X.npy')
 y = numpy.load(folder+'/bootstrap_y.npy')
 dX = numpy.load(folder+'/bootstrap_dX.npy')
