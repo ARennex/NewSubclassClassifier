@@ -3,11 +3,9 @@ from .. import PRF
 from sklearn.ensemble import RandomForestClassifier
 import numpy
 
-
 import os
 folder = os.getcwd() + "/PRF/examples/data"
 
-#folder = 'D:/NewSubclassClassifier/NewSubclassClassifier/Useful Code/PRF/PRF/examples/data'
 X = numpy.load(folder+'/bootstrap_X.npy')
 y = numpy.load(folder+'/bootstrap_y.npy')
 dX = numpy.load(folder+'/bootstrap_dX.npy')
@@ -37,9 +35,6 @@ test_inds = shuffled_inds[n_train:(n_train + n_test)]
 X_test = X[test_inds][:,:nf]
 y_test = y[test_inds]
 dX_test = dX[test_inds][:,:nf]
-
-#import faulthandler
-#faulthandler.enable()
 
 print('Break Test 1')
 
