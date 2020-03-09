@@ -84,7 +84,9 @@ def jointplot_w_hue(data, x, y, filename, hue=None, colormap = None,
     plt.setp(ax_legend.get_yticklabels(), visible=False)
 
     ax_legend.legend(handles=legend_mapping)
-    saveName = "Verified Crossmatched Stars/"+ x + y + filename + ".png"
+    os.makedirs(('Verified Crossmatched Stars/' + filename + '/'), exist_ok=True)
+    saveName = "Verified Crossmatched Stars/"+ filename + '/' + x + y + ".png"
+    #saveName = "Verified Crossmatched Stars/"+ x + y + filename + ".png"
     plt.savefig(saveName)
     #plt.savefig("Verified Crossmatched Stars/"+ x + y + "FrequencyHeight.png")
     plt.close()
@@ -175,7 +177,6 @@ def row_checker(row, freqName, heightName, lowerLimit, upperLimit):
         #return -9.99E8, -9.99E8
 
 ids = [' cflvsc.FreqSTR',' cflvsc.FreqPDM',' cflvsc.FreqLSG',' cflvsc.FreqKfi2',' cflvsc.FreqLfl2']
-neat_data = pd.DataFrame(columns = ['validFreqSTR','validFreqPDM','validFreqLSG','validFreqKfi2','validFreqLfl2'])
 for index,row in compilationData.iterrows():
     for singleID in ids:
         heightName = singleID.replace("Freq",'Height')
@@ -199,6 +200,180 @@ for index,row in compilationData.iterrows():
         compilationData.loc[index,validFreq] = valid
 
 print(compilationData)
+
+
+
+#######################################
+# 2nd Compilation of Trimming Factors #
+#######################################
+compilationData = compilationData[compilationData[' cflvsc.Ngoodmeasures'] > 50]
+for frequency in [' cflvsc.FreqSTR',' cflvsc.FreqPDM',' cflvsc.FreqLSG',' cflvsc.FreqKfi2',' cflvsc.FreqLfl2']:
+    frequencyName = frequency+' period'
+    validFreq = frequency.replace(" cflvsc.", "valid")
+    temporaryData = compilationData[compilationData[validFreq] == True]
+
+    logName = frequency + ' log10_period'
+    columnName = frequency.replace("Freq",'Height')
+
+    # literaturePeriods['mod heights'] = pd.qcut(lpvCandidates[columnName],
+    #                               q=[0, .2, .4, .6, .8, 1],
+    #                               labels=['20%', '40%', '60%', '80%', '100%'])
+    results, bin_edges = pd.qcut(temporaryData[columnName],
+                                  q=[0, .2, .4, .6, .8, 1],
+                                  labels=['20%', '40%', '60%', '80%', '100%'],
+                                  retbins = True)
+
+    temporaryData['mod heights'] = pd.qcut(temporaryData[columnName],
+                                  q=[0, .2, .4, .6, .8, 1],
+                                  labels=bin_edges[:-1]) #-2 in order to drop the last value only. the bin labels are the min point
+    results_table = pd.DataFrame(zip(bin_edges, ['20%', '40%', '60%', '80%', '100%']),
+                                columns=['Threshold', 'Tier'])
+    print('*'*50)
+    print(frequency)
+    print('*'*50)
+    print(results_table)
+    print(temporaryData['mod heights'].unique())
+    print(temporaryData['mod heights'].value_counts())
+
+    jointplot_w_hue(data=temporaryData, x = 'crossmatch_1og10_period', y = logName, filename='Version1', hue = 'mod heights')['fig']
+
+    os.makedirs(('Verified Crossmatched Stars/Height Histogram/'), exist_ok=True)
+    temp = temporaryData[columnName]
+    hist = temp.hist(bins = 40)
+    plt.title(columnName+ 'Histogram')
+    plt.xlabel(columnName)
+    plt.savefig('Verified Crossmatched Stars/Height Histogram/'+frequencyName+'.png')
+    plt.clf()
+
+
+
+
+##################################################################################
+""""
+# Not Just LPV stars #
+"""
+##################################################################################
+
+crossmatchedData = pd.read_csv('cflvsc_r01_crosssources.dat',sep=',')
+
+
+literaturePeriods = crossmatchedData[crossmatchedData[' cflvsc.Period'] > 0]
+
+###################################
+# Compilation of Trimming Factors #
+###################################
+compilationData = literaturePeriods[literaturePeriods[' cflvsc.Ngoodmeasures'] > 40]
+for frequency in [' cflvsc.FreqSTR',' cflvsc.FreqPDM',' cflvsc.FreqLSG',' cflvsc.FreqKfi2',' cflvsc.FreqLfl2']:
+    frequencyName = frequency+' period'
+    compilationData[frequencyName] = np.ones(len(compilationData[frequency]))
+    compilationData[frequencyName] = compilationData[frequencyName].div(compilationData[frequency])
+
+    logName = frequency + ' log10_period'
+    compilationData[logName] = np.log10(compilationData[frequencyName])
+    compilationData['crossmatch_1og10_period'] = np.log10(compilationData[' cflvsc.Period'])
+
+    columnName = frequency.replace("Freq",'Height')
+
+    # literaturePeriods['mod heights'] = pd.qcut(lpvCandidates[columnName],
+    #                               q=[0, .2, .4, .6, .8, 1],
+    #                               labels=['20%', '40%', '60%', '80%', '100%'])
+    results, bin_edges = pd.qcut(compilationData[columnName],
+                                  q=[0, .2, .4, .6, .8, 1],
+                                  labels=['20%', '40%', '60%', '80%', '100%'],
+                                  retbins = True)
+
+    compilationData['mod heights'] = pd.qcut(compilationData[columnName],
+                                  q=[0, .2, .4, .6, .8, 1],
+                                  labels=bin_edges[:-1]) #-2 in order to drop the last value only. the bin labels are the min point
+    results_table = pd.DataFrame(zip(bin_edges, ['20%', '40%', '60%', '80%', '100%']),
+                                columns=['Threshold', 'Tier'])
+    print('*'*50)
+    print(frequency)
+    print('*'*50)
+    print(results_table)
+    print(compilationData['mod heights'].unique())
+    print(compilationData['mod heights'].value_counts())
+
+    jointplot_w_hue(data=compilationData, x = 'crossmatch_1og10_period', y = logName, filename='AllPeriodic', hue = 'mod heights')['fig']
+
+    os.makedirs(('Verified Crossmatched Stars/All Periodic Height Histogram/'), exist_ok=True)
+    temp = compilationData[columnName]
+    hist = temp.hist(bins = 40)
+    plt.title(columnName+ 'Histogram')
+    plt.xlabel(columnName)
+    plt.savefig('Verified Crossmatched Stars/All Periodic Height Histogram/'+frequencyName+'.png')
+    plt.clf()
+    #plt.show()
+
+ids = [' cflvsc.FreqSTR',' cflvsc.FreqPDM',' cflvsc.FreqLSG',' cflvsc.FreqKfi2',' cflvsc.FreqLfl2']
+for index,row in compilationData.iterrows():
+    for singleID in ids:
+        heightName = singleID.replace("Freq",'Height')
+        validFreq = singleID.replace(" cflvsc.", "valid")
+        #validHeight = heightName.replace(" cflvsc.", "valid")
+
+        if singleID == ' cflvsc.FreqSTR':
+            valid = row_checker(row,singleID,heightName,0.05,10.0)
+        elif singleID == ' cflvsc.FreqPDM':
+            valid = row_checker(row,singleID,heightName,0.0,0.5)
+        elif singleID == ' cflvsc.FreqLSG':
+            valid = row_checker(row,singleID,heightName,4.5,1000.0)
+        elif singleID == ' cflvsc.FreqKfi2':
+            valid = row_checker(row,singleID,heightName,0.75,10.0)
+        elif singleID == ' cflvsc.FreqLfl2':
+            valid = row_checker(row,singleID,heightName,0.75,10.0)
+
+        #########################################
+        # This is where the new column is added #
+        #########################################
+        compilationData.loc[index,validFreq] = valid
+
+print(compilationData)
+
+#######################################
+# 2nd Compilation of Trimming Factors #
+#######################################
+compilationData = compilationData[compilationData[' cflvsc.Ngoodmeasures'] > 50]
+for frequency in [' cflvsc.FreqSTR',' cflvsc.FreqPDM',' cflvsc.FreqLSG',' cflvsc.FreqKfi2',' cflvsc.FreqLfl2']:
+    frequencyName = frequency+' period'
+    validFreq = frequency.replace(" cflvsc.", "valid")
+    temporaryData = compilationData[compilationData[validFreq] == True]
+
+    logName = frequency + ' log10_period'
+    columnName = frequency.replace("Freq",'Height')
+
+    # literaturePeriods['mod heights'] = pd.qcut(lpvCandidates[columnName],
+    #                               q=[0, .2, .4, .6, .8, 1],
+    #                               labels=['20%', '40%', '60%', '80%', '100%'])
+    results, bin_edges = pd.qcut(temporaryData[columnName],
+                                  q=[0, .2, .4, .6, .8, 1],
+                                  labels=['20%', '40%', '60%', '80%', '100%'],
+                                  retbins = True)
+
+    temporaryData['mod heights'] = pd.qcut(temporaryData[columnName],
+                                  q=[0, .2, .4, .6, .8, 1],
+                                  labels=bin_edges[:-1]) #-2 in order to drop the last value only. the bin labels are the min point
+    results_table = pd.DataFrame(zip(bin_edges, ['20%', '40%', '60%', '80%', '100%']),
+                                columns=['Threshold', 'Tier'])
+    print('*'*50)
+    print(frequency)
+    print('*'*50)
+    print(results_table)
+    print(temporaryData['mod heights'].unique())
+    print(temporaryData['mod heights'].value_counts())
+
+    jointplot_w_hue(data=temporaryData, x = 'crossmatch_1og10_period', y = logName, filename='GoodPeriodicVersion1', hue = 'mod heights')['fig']
+
+    os.makedirs(('Verified Crossmatched Stars/Good Periodic Height Histogram/'), exist_ok=True)
+    temp = temporaryData[columnName]
+    hist = temp.hist(bins = 40)
+    plt.title(columnName+ 'Histogram')
+    plt.xlabel(columnName)
+    plt.savefig('Verified Crossmatched Stars/Good Periodic Height Histogram/'+frequencyName+'.png')
+    plt.clf()
+
+
+
 exit()
 ###################################
 # This bit here needs repurposing -> above ^ #
