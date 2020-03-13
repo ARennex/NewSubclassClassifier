@@ -166,6 +166,34 @@ for frequency in [' cflvsc.FreqSTR',' cflvsc.FreqPDM',' cflvsc.FreqLSG',' cflvsc
     #plt.show()
 
 
+######################
+# Colour By Var Type #
+######################
+compilationData = literaturePeriods[literaturePeriods[' cflvsc.Ngoodmeasures'] > 40]
+for frequency in [' cflvsc.FreqSTR',' cflvsc.FreqPDM',' cflvsc.FreqLSG',' cflvsc.FreqKfi2',' cflvsc.FreqLfl2']:
+    frequencyName = frequency+' period'
+    compilationData[frequencyName] = np.ones(len(compilationData[frequency]))
+    compilationData[frequencyName] = compilationData[frequencyName].div(compilationData[frequency])
+
+    logName = frequency + ' log10_period'
+    compilationData[logName] = np.log10(compilationData[frequencyName])
+    compilationData['crossmatch_1og10_period'] = np.log10(compilationData[' cflvsc.Period'])
+
+    columnName = frequency.replace("Freq",'Height')
+
+    print('*'*50)
+    print(frequency)
+    print('*'*50)
+    print(results_table)
+
+    jointplot_w_hue(data=compilationData, x = 'crossmatch_1og10_period', y = logName, filename='Variable Type', hue = ' cflvsc.MainVarType')['fig']
+
+    thresholdName = columnName+'-FAP'
+    compilationData[thresholdName] = compilationData[columnName]/compilationData[' cflvsc.FAPcorrelation2']
+
+    jointplot_w_hue(data=compilationData, x = 'crossmatch_1og10_period', y = thresholdName, filename='Variable Type', hue = ' cflvsc.MainVarType')['fig']
+
+
 import operator
 
 def row_checker(row, freqName, heightName, lowerLimit, upperLimit):
