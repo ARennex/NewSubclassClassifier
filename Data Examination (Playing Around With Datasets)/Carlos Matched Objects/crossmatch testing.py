@@ -6,12 +6,27 @@ import os
 import seaborn as sns
 import matplotlib.gridspec as gridspec
 import matplotlib.patches as mpatches
+from matplotlib.colors import LinearSegmentedColormap
+import argparse
 
 magAplPlot = False
 OSARGCheck = True
+mode='period'
+
+ap = argparse.ArgumentParser()
+ap.add_argument("-O", "--OSARGCheck", type=bool, default=False,
+    help="OSARG plotting y?n?.")
+ap.add_argument("-m", "--mode", type=str, default='default',
+    help="Mode to plot.")
+args = vars(ap.parse_args())
+OSARGCheck = args['OSARGCheck']
+mode=args['mode']
+
+from pylab import rcParams
+rcParams['figure.figsize'] = 14, 10
 
 sns.set_style('darkgrid')
-def jointplot_w_hue(data, x, y, filename, hue=None, colormap = None,
+def jointplot_w_hue(data, x, y, filename, plotLims=None, hue=None, colormap = None,
                     figsize = None, fig = None, scatter_kws=None):
     #defaults
     if colormap is None:
@@ -83,7 +98,13 @@ def jointplot_w_hue(data, x, y, filename, hue=None, colormap = None,
     plt.setp(ax_legend.get_xticklabels(), visible=False)
     plt.setp(ax_legend.get_yticklabels(), visible=False)
 
+    if plotLims != None:
+        left, right = plotLims[0], plotLims[1]
+        ax_main.set_ylim(left-0.1, right+0.1)
+
     ax_legend.legend(handles=legend_mapping)
+    if plotLims != None:
+        filename += 'Limited'
     os.makedirs(('Verified Crossmatched Stars/' + filename + '/'), exist_ok=True)
     saveName = "Verified Crossmatched Stars/"+ filename + '/' + x + y + ".png"
     #saveName = "Verified Crossmatched Stars/"+ x + y + filename + ".png"
@@ -122,49 +143,386 @@ literaturePeriods = lpvCandidates[lpvCandidates[' cflvsc.Period'] > 0]
 ###################################
 # Compilation of Trimming Factors #
 ###################################
+
+def crossmatchedNames(frequency):
+    frequencyName = frequency+' period'
+    logName = frequency + ' log10_period'
+    columnName = frequency.replace("Freq",'Height')
+    thresholdName = columnName+'-FAP'
+    logHeight = 'log'+columnName
+    return frequencyName,logName,columnName,thresholdName,logHeight
+
+def vivaNames(frequency):
+    #This is for the complete viva data
+    if (frequency == ' cflvsc.FreqKfi2'):
+        vivaName = frequency.replace(" cflvsc.Freq",'freqP')
+    elif frequency == ' cflvsc.FreqLfl2':
+        vivaName = frequency.replace(" cflvsc.Freq",'freqP')
+        vivaName = vivaName.replace("l",'i')
+    else:
+        vivaName = frequency.replace(" cflvsc.Freq",'freq')
+    vivaPeriod = vivaName+'Period'
+    vivaLogPeriod = vivaName+'LogPeriod'
+    vivaHeight = vivaName.replace("freq",'height')
+    vivaThresholdName = vivaHeight+'-FAP'
+    vivaLogHeight = 'log'+vivaHeight
+    return vivaName,vivaPeriod,vivaLogPeriod,vivaHeight,vivaThresholdName,vivaLogHeight
+
+
+import matplotlib.cm as cm
+literaturePeriods = crossmatchedData[crossmatchedData[' cflvsc.Period'] > 0]
+vivaData = pd.read_csv('AllGoodObjs.csv', skiprows=20)
 compilationData = literaturePeriods[literaturePeriods[' cflvsc.Ngoodmeasures'] > 40]
 for frequency in [' cflvsc.FreqSTR',' cflvsc.FreqPDM',' cflvsc.FreqLSG',' cflvsc.FreqKfi2',' cflvsc.FreqLfl2']:
-    frequencyName = frequency+' period'
+    frequencyName,logName,columnName,thresholdName,logHeight = crossmatchedNames(frequency)
+    #frequencyName = frequency+' period'
     compilationData[frequencyName] = np.ones(len(compilationData[frequency]))
     compilationData[frequencyName] = compilationData[frequencyName].div(compilationData[frequency])
-
-    logName = frequency + ' log10_period'
+    #logName = frequency + ' log10_period'
     compilationData[logName] = np.log10(compilationData[frequencyName])
     compilationData['crossmatch_1og10_period'] = np.log10(compilationData[' cflvsc.Period'])
+    #columnName = frequency.replace("Freq",'Height')
+    #thresholdName = columnName+'-FAP'
+    compilationData[thresholdName] = compilationData[columnName]/compilationData[' cflvsc.FAPcorrelation2']
+    compilationData[logHeight] = np.log10(compilationData[columnName])
 
-    columnName = frequency.replace("Freq",'Height')
 
-    # literaturePeriods['mod heights'] = pd.qcut(lpvCandidates[columnName],
-    #                               q=[0, .2, .4, .6, .8, 1],
-    #                               labels=['20%', '40%', '60%', '80%', '100%'])
-    results, bin_edges = pd.qcut(compilationData[columnName],
-                                  q=[0, .2, .4, .6, .8, 1],
-                                  labels=['20%', '40%', '60%', '80%', '100%'],
-                                  retbins = True)
+    # #This is for the complete viva data
+    # if (frequency == ' cflvsc.FreqKfi2'):
+    #     vivaName = frequency.replace(" cflvsc.Freq",'freqP')
+    # elif frequency == ' cflvsc.FreqLfl2':
+    #     vivaName = frequency.replace(" cflvsc.Freq",'freqP')
+    #     vivaName = vivaName.replace("l",'i')
+    # else:
+    #     vivaName = frequency.replace(" cflvsc.Freq",'freq')
+    # vivaPeriod = vivaName+'Period'
+    vivaName,vivaPeriod,vivaLogPeriod,vivaHeight,vivaThresholdName,vivaLogHeight = vivaNames(frequency)
+    vivaData[vivaPeriod] = np.ones(len(vivaData[vivaName]))
+    vivaData[vivaPeriod] = vivaData[vivaPeriod].div(vivaData[vivaName])
+    #vivaLogPeriod = vivaName+'LogPeriod'
+    vivaData[vivaLogPeriod] = np.log10(vivaData[vivaPeriod])
+    #vivaHeight = vivaName.replace("freq",'height')
+    #vivaThresholdName = vivaHeight+'-FAP'
+    vivaData[vivaThresholdName] = vivaData[vivaHeight]/vivaData['faPcorrelation2']
+    vivaData[vivaLogHeight] = np.log10(vivaData[vivaHeight])
 
-    compilationData['mod heights'] = pd.qcut(compilationData[columnName],
-                                  q=[0, .2, .4, .6, .8, 1],
-                                  labels=bin_edges[:-1]) #-2 in order to drop the last value only. the bin labels are the min point
-    results_table = pd.DataFrame(zip(bin_edges, ['20%', '40%', '60%', '80%', '100%']),
-                                columns=['Threshold', 'Tier'])
-    print('*'*50)
-    print(frequency)
-    print('*'*50)
-    print(results_table)
-    print(compilationData['mod heights'].unique())
-    print(compilationData['mod heights'].value_counts())
 
-    jointplot_w_hue(data=compilationData, x = 'crossmatch_1og10_period', y = logName, filename='Compilation', hue = 'mod heights')['fig']
+    if mode == 'default':
+        """Plot the viva data"""
+        gridsize=60
+        temp_data = vivaData[vivaData[vivaThresholdName] < 5]
+        temp_data = temp_data[temp_data[vivaThresholdName] >= 0]
+        plt.hexbin(temp_data[vivaLogPeriod], temp_data[vivaThresholdName], gridsize=gridsize, cmap=cm.jet, bins='log')
+        #plt.hexbin(temp_data[vivaLogPeriod], temp_data[vivaThresholdName], gridsize=gridsize, cmap=cm.jet, bins=None)
+        xedges = [temp_data[vivaLogPeriod].min(), temp_data[vivaLogPeriod].max()]
+        yedges = [temp_data[vivaThresholdName].min(), temp_data[vivaThresholdName].max()]
+        if yedges[-1] > 2:
+            extent = [xedges[0], xedges[-1], yedges[0], 2]
+            print(extent)
+        else:
+            extent = [xedges[0], xedges[-1], yedges[0], yedges[-1]]
+            print(extent)
+        extent = [xedges[0], xedges[-1], yedges[0], yedges[-1]]
+        plt.axis(extent)
+        plt.title('Scatter plot of power spectrum heights and periods')
+        plt.ylabel(vivaThresholdName)
+        plt.xlabel(vivaLogPeriod + ' & crossmatched period')
 
-    os.makedirs(('Verified Crossmatched Stars/Height Histogram/'), exist_ok=True)
-    temp = compilationData[columnName]
-    hist = temp.hist(bins = 40)
-    plt.title(columnName+ 'Histogram')
-    plt.xlabel(columnName)
-    plt.savefig('Verified Crossmatched Stars/Height Histogram/'+frequencyName+'.png')
-    plt.clf()
-    #plt.show()
+        cb = plt.colorbar()
+        cb.set_label('Counts')
+        #plt.show()
 
+        gridsize=60
+        temp_data = compilationData[compilationData[thresholdName] < 5]
+        temp_data = temp_data[temp_data[thresholdName] >= 0]
+
+        red_high = ((0., 0., 0.),
+             (.3, .5, 0.5),
+             (1., 1., 1.))
+        blue_middle = ((0., .2, .2),
+                 (.3, .5, .5),
+                 (.8, .2, .2),
+                 (1., .1, .1))
+        green_none = ((0,0,0),(1,0,0))
+
+        cdict3 = {'white':  red_high,
+
+             'green': green_none,
+
+             'grey': blue_middle,
+
+             'alpha': ((0.0, 0.0, 0.0),
+                       (0.3, 0.5, 0.5),
+                       (1.0, 1.0, 1.0))
+            }
+
+        dark_low = ((0., 1., 1.),
+             (1., 0., 0.))
+
+        # dark_low = ((1., 1., 1.),
+        #      (.6, 1., 0.),
+        #      (.3, 1., 0.),
+        #      (0., 0., 0.))
+
+        dark_high = ((0., 0., 0.),
+             (0.5, 0.5, 0.5),
+             (1., 1., 1.))
+
+        green_none = ((0,0,0),(1,0,0))
+
+        cdict = {'red':  dark_high,
+
+             'green': green_none,
+
+             'blue': dark_low,
+
+             'alpha': ((0.0, 0.0, 0.0),
+                       (0.3, 0.0, 1.0),
+                       (1.0, 1.0, 1.0))
+            }
+
+        cdict3 = {'red':  dark_low,
+
+             'green': dark_low,
+
+             'blue': dark_low,
+
+             'alpha': ((0.0, 0.0, 0.0),
+                       (0.3, 0.0, 1.0),
+                       (1.0, 1.0, 1.0))
+            }
+
+        from matplotlib.cm import Greys
+        import matplotlib.colors as clr
+        cmap = clr.LinearSegmentedColormap.from_list('custom blue',
+                                                 [(0,    '#ffff00'),
+                                                  (0.25, '#002266'),
+                                                  (1,    '#002266')], N=256)
+        import matplotlib.pylab as pl
+        from matplotlib.colors import ListedColormap
+
+        cmap = pl.cm.Greys
+
+        # Get the colormap colors
+        my_cmap = cmap(np.arange(cmap.N))
+        #cmap.N = 256
+
+        # Set alpha
+        my_cmap[:,-1] = np.linspace(0, 1, cmap.N)
+        #zeroBaseline = 10
+        #my_cmap[:,-1] = np.concatenate(([0.1]*zeroBaseline),np.ones(cmap.N-zeroBaseline)))
+
+        # Create new colormap
+        my_cmap = ListedColormap(my_cmap)
+
+        greys = LinearSegmentedColormap('Greys', cdict)
+        plt.register_cmap(cmap=greys)
+
+        dropout_high = LinearSegmentedColormap('Dropout', cdict3)
+        plt.register_cmap(cmap = dropout_high)
+
+        xName = 'crossmatch_1og10_period'
+        xName = logName
+        plt.hexbin(temp_data[xName], temp_data[thresholdName], gridsize=gridsize, cmap=my_cmap, bins=None)
+        xedges = [temp_data[xName].min(), temp_data[xName].max()]
+        yedges = [temp_data[thresholdName].min(), temp_data[thresholdName].max()]
+        if yedges[-1] > 2:
+            extent = [xedges[0], xedges[-1], yedges[0], 2]
+            print(extent)
+        else:
+            extent = [xedges[0], xedges[-1], yedges[0], yedges[-1]]
+            print(extent)
+        extent = [xedges[0], xedges[-1], yedges[0], yedges[-1]]
+        plt.axis(extent)
+
+        cb = plt.colorbar()
+        cb.set_label('mean value')
+        plt.savefig('Verified Crossmatched Stars/PERIOD SELECTION/'+frequencyName+'ORIGINAL.png')
+        #plt.show()
+        plt.clf()
+
+
+
+for frequency in [' cflvsc.FreqSTR',' cflvsc.FreqPDM',' cflvsc.FreqLSG',' cflvsc.FreqKfi2',' cflvsc.FreqLfl2']:
+    frequencyName,logName,columnName,thresholdName,logHeight = crossmatchedNames(frequency)
+    vivaName,vivaPeriod,vivaLogPeriod,vivaHeight,vivaThresholdName,vivaLogHeight = vivaNames(frequency)
+
+
+    if mode == 'period':
+        os.makedirs(('Verified Crossmatched Stars/PERIOD SELECTION/'), exist_ok=True)
+        for xCoordFrequency in [' cflvsc.FreqSTR',' cflvsc.FreqPDM',' cflvsc.FreqLSG',' cflvsc.FreqKfi2',' cflvsc.FreqLfl2']:
+            _,_,xVivaName,_,_,_ = vivaNames(xCoordFrequency) #Get the needed vivaLogPeriod name
+            _,xName,_,_,_ = crossmatchedNames(xCoordFrequency)
+
+            """Plot the viva data"""
+            gridsize=60
+            temp_data = vivaData[vivaData[vivaThresholdName] < 5]
+            temp_data = temp_data[temp_data[vivaThresholdName] >= 0]
+            plt.hexbin(temp_data[xVivaName], temp_data[vivaThresholdName], gridsize=gridsize, cmap=cm.jet, bins='log')
+            #plt.hexbin(temp_data[vivaLogPeriod], temp_data[vivaThresholdName], gridsize=gridsize, cmap=cm.jet, bins=None)
+            xedges = [temp_data[xVivaName].min(), temp_data[xVivaName].max()]
+            yedges = [temp_data[vivaThresholdName].min(), temp_data[vivaThresholdName].max()]
+            if yedges[-1] > 2:
+                extent = [xedges[0], xedges[-1], yedges[0], 2]
+                print(extent)
+            else:
+                extent = [xedges[0], xedges[-1], yedges[0], yedges[-1]]
+                print(extent)
+            extent = [xedges[0], xedges[-1], yedges[0], yedges[-1]]
+            plt.axis(extent)
+            plt.title('Scatter plot of power spectrum heights and periods')
+            plt.ylabel(vivaThresholdName)
+            plt.xlabel(xVivaName + ' & crossmatched period')
+
+            cb = plt.colorbar()
+            cb.set_label('Counts')
+            #plt.show()
+
+            gridsize=60
+            temp_data = compilationData[compilationData[thresholdName] < 5]
+            temp_data = temp_data[temp_data[thresholdName] >= 0]
+
+            red_high = ((0., 0., 0.),
+                 (.3, .5, 0.5),
+                 (1., 1., 1.))
+            blue_middle = ((0., .2, .2),
+                     (.3, .5, .5),
+                     (.8, .2, .2),
+                     (1., .1, .1))
+            green_none = ((0,0,0),(1,0,0))
+
+            cdict3 = {'white':  red_high,
+
+                 'green': green_none,
+
+                 'grey': blue_middle,
+
+                 'alpha': ((0.0, 0.0, 0.0),
+                           (0.3, 0.5, 0.5),
+                           (1.0, 1.0, 1.0))
+                }
+
+            dark_low = ((0., 1., 1.),
+                 (1., 0., 0.))
+
+            # dark_low = ((1., 1., 1.),
+            #      (.6, 1., 0.),
+            #      (.3, 1., 0.),
+            #      (0., 0., 0.))
+
+            dark_high = ((0., 0., 0.),
+                 (0.5, 0.5, 0.5),
+                 (1., 1., 1.))
+
+            green_none = ((0,0,0),(1,0,0))
+
+            cdict = {'red':  dark_high,
+
+                 'green': green_none,
+
+                 'blue': dark_low,
+
+                 'alpha': ((0.0, 0.0, 0.0),
+                           (0.3, 0.0, 1.0),
+                           (1.0, 1.0, 1.0))
+                }
+
+            cdict3 = {'red':  dark_low,
+
+                 'green': dark_low,
+
+                 'blue': dark_low,
+
+                 'alpha': ((0.0, 0.0, 0.0),
+                           (0.3, 0.0, 1.0),
+                           (1.0, 1.0, 1.0))
+                }
+
+            from matplotlib.cm import Greys
+            import matplotlib.colors as clr
+            cmap = clr.LinearSegmentedColormap.from_list('custom blue',
+                                                     [(0,    '#ffff00'),
+                                                      (0.25, '#002266'),
+                                                      (1,    '#002266')], N=256)
+            import matplotlib.pylab as pl
+            from matplotlib.colors import ListedColormap
+
+            cmap = pl.cm.Greys
+
+            # Get the colormap colors
+            my_cmap = cmap(np.arange(cmap.N))
+            #cmap.N = 256
+
+            # Set alpha
+            my_cmap[:,-1] = np.linspace(0, 1, cmap.N)
+            #zeroBaseline = 10
+            #my_cmap[:,-1] = np.concatenate(([0.1]*zeroBaseline),np.ones(cmap.N-zeroBaseline)))
+
+            # Create new colormap
+            my_cmap = ListedColormap(my_cmap)
+
+            greys = LinearSegmentedColormap('Greys', cdict)
+            plt.register_cmap(cmap=greys)
+
+            dropout_high = LinearSegmentedColormap('Dropout', cdict3)
+            plt.register_cmap(cmap = dropout_high)
+
+            #plt.hexbin(x,y, bins='log', cmap=dropout_high)
+
+            #xName = 'crossmatch_1og10_period'
+            #xName = logName
+            plt.hexbin(temp_data[xName], temp_data[thresholdName], gridsize=gridsize, cmap=my_cmap, bins=None)
+            xedges = [temp_data[xName].min(), temp_data[xName].max()]
+            yedges = [temp_data[thresholdName].min(), temp_data[thresholdName].max()]
+            if yedges[-1] > 2:
+                extent = [xedges[0], xedges[-1], yedges[0], 2]
+                print(extent)
+            else:
+                extent = [xedges[0], xedges[-1], yedges[0], yedges[-1]]
+                print(extent)
+            extent = [xedges[0], xedges[-1], yedges[0], yedges[-1]]
+            plt.axis(extent)
+            #plt.title(vivaName)
+            #plt.axis([compilationData['crossmatch_1og10_period'].min(), compilationData['crossmatch_1og10_period'].max(), compilationData[thresholdName].min(), compilationData[thresholdName].max()])
+
+            cb = plt.colorbar()
+            cb.set_label('Counts')
+            plt.savefig('Verified Crossmatched Stars/PERIOD SELECTION/'+thresholdName+'VS'+xVivaName+'.png')
+            #plt.show()
+            plt.clf()
+
+    if mode == 'height':
+        os.makedirs(('Verified Crossmatched Stars/LOG HEIGHT SELECTION/'), exist_ok=True)
+        for xCoordFrequency in [' cflvsc.FreqSTR',' cflvsc.FreqPDM',' cflvsc.FreqLSG',' cflvsc.FreqKfi2',' cflvsc.FreqLfl2']:
+            _,_,_,_,_,xvivaLogHeight = vivaNames(xCoordFrequency) #Get the needed names for the graph
+            _,_,_,_,logHeight = crossmatchedNames(frequency)
+            print("Now on: ", frequency, ', ' + xCoordFrequency)
+
+            temp_data1 = vivaData[[xvivaLogHeight,vivaThresholdName]]
+            temp_data1.columns = ['x1','y1']
+
+            temp_data2 = compilationData[[logHeight,thresholdName]]
+            temp_data2.columns = ['x2','y2']
+
+            graph = sns.jointplot(x=temp_data1.x1, y=temp_data1.y1, color='r')
+            graph.x = temp_data2.x2
+            graph.y = temp_data2.y2
+            graph.plot_joint(plt.scatter, marker='x', c='b', s=50)
+            #plt.title('Scatter plot of power spectrum heights and heights/faPcorrelation2')
+            plt.ylabel(vivaThresholdName)
+            plt.xlabel(xvivaLogHeight)
+            plt.savefig('Verified Crossmatched Stars/LOG HEIGHT SELECTION/'+frequency +'VS'+xCoordFrequency+'.png')
+            #plt.show()
+            plt.close()
+            plt.clf()
+            del temp_data1, temp_data2, graph
+
+            #grid = sns.jointplot(x=" cflvsc.Avar", y=" cflvsc.ksEMeanMagPawprint", data=temp_data, kind='kde')
+            #quit()
+
+
+
+quit()
 
 ######################
 # Colour By Var Type #
@@ -193,7 +551,9 @@ for frequency in [' cflvsc.FreqSTR',' cflvsc.FreqPDM',' cflvsc.FreqLSG',' cflvsc
 
     jointplot_w_hue(data=compilationData, x = 'crossmatch_1og10_period', y = thresholdName, filename='Variable Type', hue = ' cflvsc.MainVarType')['fig']
 
+    jointplot_w_hue(data=compilationData, x = 'crossmatch_1og10_period', y = thresholdName, filename='Variable Type', plotLims=[0,1.5] , hue = ' cflvsc.MainVarType')['fig']
 
+exit()
 import operator
 
 def row_checker(row, freqName, heightName, lowerLimit, upperLimit):
