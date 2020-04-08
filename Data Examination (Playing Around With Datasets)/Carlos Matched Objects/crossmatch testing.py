@@ -206,7 +206,6 @@ for frequency in [' cflvsc.FreqSTR',' cflvsc.FreqPDM',' cflvsc.FreqLSG',' cflvsc
     vivaData[vivaThresholdName] = vivaData[vivaHeight]/vivaData['faPcorrelation2']
     vivaData[vivaLogHeight] = np.log10(vivaData[vivaHeight])
 
-
     if mode == 'default':
         """Plot the viva data"""
         gridsize=60
@@ -495,26 +494,45 @@ for frequency in [' cflvsc.FreqSTR',' cflvsc.FreqPDM',' cflvsc.FreqLSG',' cflvsc
         os.makedirs(('Verified Crossmatched Stars/LOG HEIGHT SELECTION/'), exist_ok=True)
         for xCoordFrequency in [' cflvsc.FreqSTR',' cflvsc.FreqPDM',' cflvsc.FreqLSG',' cflvsc.FreqKfi2',' cflvsc.FreqLfl2']:
             _,_,_,_,_,xvivaLogHeight = vivaNames(xCoordFrequency) #Get the needed names for the graph
-            _,_,_,_,logHeight = crossmatchedNames(frequency)
+            _,_,_,_,xlogHeight = crossmatchedNames(xCoordFrequency)
             print("Now on: ", frequency, ', ' + xCoordFrequency)
 
             temp_data1 = vivaData[[xvivaLogHeight,vivaThresholdName]]
             temp_data1.columns = ['x1','y1']
 
-            temp_data2 = compilationData[[logHeight,thresholdName]]
+            temp_data2 = compilationData[[xlogHeight,thresholdName]]
             temp_data2.columns = ['x2','y2']
+            #print(temp_data1.describe())
+            #print(temp_data2.describe())
 
             graph = sns.jointplot(x=temp_data1.x1, y=temp_data1.y1, color='r')
             graph.x = temp_data2.x2
             graph.y = temp_data2.y2
-            graph.plot_joint(plt.scatter, marker='x', c='b', s=50)
+            graph.plot_joint(plt.scatter, marker='x', c='b')
+            #graph.plot_joint(plt.scatter, marker='x', c='b', s=50)
+            # print(frequency+'VS'+xCoordFrequency)
+            # print(max(temp_data2.x2), ', ', max(temp_data2.y2))
+            # print(max(compilationData[logHeight]), ', ', max(compilationData[thresholdName]))
+            #plt.scatter(temp_data2.x2, y=temp_data2.y2)
             #plt.title('Scatter plot of power spectrum heights and heights/faPcorrelation2')
             plt.ylabel(vivaThresholdName)
             plt.xlabel(xvivaLogHeight)
-            plt.savefig('Verified Crossmatched Stars/LOG HEIGHT SELECTION/'+frequency +'VS'+xCoordFrequency+'.png')
+            #plt.yscale('log')
+            plt.savefig('Verified Crossmatched Stars/LOG HEIGHT SELECTION/'+xCoordFrequency +'VS'+frequency+'.png')
             #plt.show()
             plt.close()
             plt.clf()
+
+            # if xCoordFrequency == ' cflvsc.FreqLfl2':
+            #     grid = sns.jointplot(x="x2", y="y2", data=temp_data2, kind='scatter')
+            #     plt.savefig('Verified Crossmatched Stars/LOG HEIGHT SELECTION/'+frequency+'.png')
+            #     plt.clf()
+            #
+            #     grid = sns.jointplot(x=temp_data2.x2, y=compilationData[thresholdName], kind='scatter')
+            #     plt.savefig('Verified Crossmatched Stars/LOG HEIGHT SELECTION/test'+frequency+'.png')
+            #     plt.clf()
+
+
             del temp_data1, temp_data2, graph
 
             #grid = sns.jointplot(x=" cflvsc.Avar", y=" cflvsc.ksEMeanMagPawprint", data=temp_data, kind='kde')
